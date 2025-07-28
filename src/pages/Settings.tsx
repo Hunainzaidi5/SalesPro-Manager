@@ -11,9 +11,11 @@ const Settings = () => {
   const handleExportData = async () => {
     try {
       // Fetch data from database
-      const menuItems = await getMenuItems();
-      const inventoryItems = await getInventoryItems();
-      const sales = await getSales();
+      const [menuItems, inventoryItems, sales] = await Promise.all([
+        getMenuItems(),
+        getInventoryItems(),
+        getSales()
+      ]);
       
       // Create workbook with multiple sheets
       const workbook = XLSX.utils.book_new();
@@ -98,9 +100,10 @@ const Settings = () => {
         description: "Data exported successfully as XLSX file",
       });
     } catch (error) {
+      console.error('Error exporting data:', error);
       toast({
         title: "Error",
-        description: "Failed to export data",
+        description: "Failed to export data. Please try again.",
         variant: "destructive",
       });
     }

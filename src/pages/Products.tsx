@@ -24,6 +24,7 @@ const Menu = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
   // Form state
@@ -58,6 +59,7 @@ const Menu = () => {
       
       setMenuItems(menuItemsWithStats);
     } catch (error) {
+      console.error('Error loading menu items:', error);
       toast({
         title: "Error",
         description: "Failed to load menu items",
@@ -82,13 +84,14 @@ const Menu = () => {
 
     const menuItemData = {
       name: formData.name,
-      sku: formData.sku,
+      sku: formData.sku || null,
       retail_price: parseFloat(formData.retailPrice),
       manufacturing_cost: parseFloat(formData.manufacturingCost),
       current_stock: parseInt(formData.currentStock) || 0,
-      category: formData.category
+      category: formData.category || null
     };
 
+    setSubmitting(true);
     try {
       if (editingMenuItem) {
         await updateMenuItem(editingMenuItem.id, menuItemData);
@@ -108,11 +111,14 @@ const Menu = () => {
       setIsDialogOpen(false);
       await loadMenuItems();
     } catch (error) {
+      console.error('Error saving menu item:', error);
       toast({
         title: "Error",
         description: "Failed to save menu item",
         variant: "destructive",
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -139,6 +145,7 @@ const Menu = () => {
         });
         await loadMenuItems();
       } catch (error) {
+        console.error('Error deleting menu item:', error);
         toast({
           title: "Error",
           description: "Failed to delete menu item",
@@ -212,6 +219,7 @@ const Menu = () => {
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   placeholder="Enter menu item name"
                   required
+                  disabled={submitting}
                 />
               </div>
               
@@ -222,6 +230,7 @@ const Menu = () => {
                   value={formData.sku}
                   onChange={(e) => setFormData({...formData, sku: e.target.value})}
                   placeholder="Enter SKU (optional)"
+                  disabled={submitting}
                 />
               </div>
               
@@ -232,6 +241,7 @@ const Menu = () => {
                   value={formData.category}
                   onChange={(e) => setFormData({...formData, category: e.target.value})}
                   placeholder="Enter category (optional)"
+                  disabled={submitting}
                 />
               </div>
 
@@ -246,6 +256,7 @@ const Menu = () => {
                     onChange={(e) => setFormData({...formData, retailPrice: e.target.value})}
                     placeholder="0.00"
                     required
+                    disabled={submitting}
                   />
                 </div>
                 <div>
@@ -258,6 +269,7 @@ const Menu = () => {
                     onChange={(e) => setFormData({...formData, manufacturingCost: e.target.value})}
                     placeholder="0.00"
                     required
+                    disabled={submitting}
                   />
                 </div>
               </div>
@@ -270,14 +282,15 @@ const Menu = () => {
                   value={formData.currentStock}
                   onChange={(e) => setFormData({...formData, currentStock: e.target.value})}
                   placeholder="0"
+                  disabled={submitting}
                 />
               </div>
               
               <div className="flex gap-2">
-                <Button type="submit" className="flex-1">
-                  {editingMenuItem ? 'Update Menu Item' : 'Add Menu Item'}
+                <Button type="submit" className="flex-1" disabled={submitting}>
+                  {submitting ? 'Saving...' : (editingMenuItem ? 'Update Menu Item' : 'Add Menu Item')}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={submitting}>
                   Cancel
                 </Button>
               </div>

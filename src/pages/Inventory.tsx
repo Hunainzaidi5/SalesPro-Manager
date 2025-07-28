@@ -22,6 +22,7 @@ const Inventory = () => {
   const [filterStatus, setFilterStatus] = useState<'all' | 'low' | 'out'>('all');
   const [filterCategory, setFilterCategory] = useState('all');
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
   // Form state for adding/editing inventory items
@@ -44,6 +45,7 @@ const Inventory = () => {
       const allInventoryItems = await getInventoryItems();
       setInventoryItems(allInventoryItems);
     } catch (error) {
+      console.error('Error loading inventory items:', error);
       toast({
         title: "Error",
         description: "Failed to load inventory items",
@@ -86,6 +88,7 @@ const Inventory = () => {
       ? selectedInventoryItem.current_stock + changeAmount
       : Math.max(0, selectedInventoryItem.current_stock - changeAmount);
 
+    setSubmitting(true);
     try {
       await updateInventoryItem(selectedInventoryItem.id, { current_stock: newStock });
       
@@ -98,11 +101,14 @@ const Inventory = () => {
       setIsDialogOpen(false);
       await loadInventoryItems();
     } catch (error) {
+      console.error('Error updating stock:', error);
       toast({
         title: "Error",
         description: "Failed to update stock",
         variant: "destructive",
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -120,13 +126,14 @@ const Inventory = () => {
 
     const inventoryItemData = {
       name: formData.name,
-      sku: formData.sku,
+      sku: formData.sku || null,
       unit_cost: parseFloat(formData.unitCost),
       current_stock: parseInt(formData.currentStock) || 0,
-      category: formData.category,
+      category: formData.category || null,
       min_stock_level: parseInt(formData.minStockLevel) || 5
     };
 
+    setSubmitting(true);
     try {
       await addInventoryItem(inventoryItemData);
       toast({
@@ -137,11 +144,14 @@ const Inventory = () => {
       setIsAddDialogOpen(false);
       await loadInventoryItems();
     } catch (error) {
+      console.error('Error adding inventory item:', error);
       toast({
         title: "Error",
         description: "Failed to add inventory item",
         variant: "destructive",
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -159,13 +169,14 @@ const Inventory = () => {
 
     const inventoryItemData = {
       name: formData.name,
-      sku: formData.sku,
+      sku: formData.sku || null,
       unit_cost: parseFloat(formData.unitCost),
       current_stock: parseInt(formData.currentStock) || 0,
-      category: formData.category,
+      category: formData.category || null,
       min_stock_level: parseInt(formData.minStockLevel) || 5
     };
 
+    setSubmitting(true);
     try {
       await updateInventoryItem(selectedInventoryItem.id, inventoryItemData);
       toast({
@@ -176,11 +187,14 @@ const Inventory = () => {
       setIsEditDialogOpen(false);
       await loadInventoryItems();
     } catch (error) {
+      console.error('Error updating inventory item:', error);
       toast({
         title: "Error",
         description: "Failed to update inventory item",
         variant: "destructive",
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -194,6 +208,7 @@ const Inventory = () => {
         });
         await loadInventoryItems();
       } catch (error) {
+        console.error('Error deleting inventory item:', error);
         toast({
           title: "Error",
           description: "Failed to delete inventory item",
@@ -286,6 +301,7 @@ const Inventory = () => {
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   placeholder="Enter item name"
                   required
+                  disabled={submitting}
                 />
               </div>
               
@@ -296,6 +312,7 @@ const Inventory = () => {
                   value={formData.sku}
                   onChange={(e) => setFormData({...formData, sku: e.target.value})}
                   placeholder="Enter SKU (optional)"
+                  disabled={submitting}
                 />
               </div>
               
@@ -306,6 +323,7 @@ const Inventory = () => {
                   value={formData.category}
                   onChange={(e) => setFormData({...formData, category: e.target.value})}
                   placeholder="Enter category (optional)"
+                  disabled={submitting}
                 />
               </div>
 
@@ -320,6 +338,7 @@ const Inventory = () => {
                     onChange={(e) => setFormData({...formData, unitCost: e.target.value})}
                     placeholder="0.00"
                     required
+                    disabled={submitting}
                   />
                 </div>
                 <div>
@@ -330,6 +349,7 @@ const Inventory = () => {
                     value={formData.minStockLevel}
                     onChange={(e) => setFormData({...formData, minStockLevel: e.target.value})}
                     placeholder="5"
+                    disabled={submitting}
                   />
                 </div>
               </div>
@@ -342,14 +362,15 @@ const Inventory = () => {
                   value={formData.currentStock}
                   onChange={(e) => setFormData({...formData, currentStock: e.target.value})}
                   placeholder="0"
+                  disabled={submitting}
                 />
               </div>
               
               <div className="flex gap-2">
-                <Button type="submit" className="flex-1">
-                  Add Item
+                <Button type="submit" className="flex-1" disabled={submitting}>
+                  {submitting ? 'Adding...' : 'Add Item'}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={submitting}>
                   Cancel
                 </Button>
               </div>
@@ -590,14 +611,15 @@ const Inventory = () => {
                 onChange={(e) => setStockChange(e.target.value)}
                 placeholder={`Enter quantity to ${operation}`}
                 required
+                disabled={submitting}
               />
             </div>
             
             <div className="flex gap-2">
-              <Button type="submit" className="flex-1">
-                {operation === 'add' ? 'Add Stock' : 'Remove Stock'}
+              <Button type="submit" className="flex-1" disabled={submitting}>
+                {submitting ? 'Updating...' : (operation === 'add' ? 'Add Stock' : 'Remove Stock')}
               </Button>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={submitting}>
                 Cancel
               </Button>
             </div>
@@ -620,6 +642,7 @@ const Inventory = () => {
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                 placeholder="Enter item name"
                 required
+                disabled={submitting}
               />
             </div>
             
@@ -630,6 +653,7 @@ const Inventory = () => {
                 value={formData.sku}
                 onChange={(e) => setFormData({...formData, sku: e.target.value})}
                 placeholder="Enter SKU (optional)"
+                disabled={submitting}
               />
             </div>
             
@@ -640,6 +664,7 @@ const Inventory = () => {
                 value={formData.category}
                 onChange={(e) => setFormData({...formData, category: e.target.value})}
                 placeholder="Enter category (optional)"
+                disabled={submitting}
               />
             </div>
 
@@ -654,6 +679,7 @@ const Inventory = () => {
                   onChange={(e) => setFormData({...formData, unitCost: e.target.value})}
                   placeholder="0.00"
                   required
+                  disabled={submitting}
                 />
               </div>
               <div>
@@ -664,6 +690,7 @@ const Inventory = () => {
                   value={formData.minStockLevel}
                   onChange={(e) => setFormData({...formData, minStockLevel: e.target.value})}
                   placeholder="5"
+                  disabled={submitting}
                 />
               </div>
             </div>
@@ -676,14 +703,15 @@ const Inventory = () => {
                 value={formData.currentStock}
                 onChange={(e) => setFormData({...formData, currentStock: e.target.value})}
                 placeholder="0"
+                disabled={submitting}
               />
             </div>
             
             <div className="flex gap-2">
-              <Button type="submit" className="flex-1">
-                Update Item
+              <Button type="submit" className="flex-1" disabled={submitting}>
+                {submitting ? 'Updating...' : 'Update Item'}
               </Button>
-              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={submitting}>
                 Cancel
               </Button>
             </div>

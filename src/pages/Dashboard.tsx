@@ -11,10 +11,15 @@ const Dashboard = () => {
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
   const [lowStockMenuItems, setLowStockMenuItems] = useState<MenuItem[]>([]);
   const [lowStockInventoryItems, setLowStockInventoryItems] = useState<InventoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
       try {
+        setLoading(true);
+        setError(null);
+        
         const [dashboardStats, allSales, allMenuItems, allInventoryItems] = await Promise.all([
           getDashboardStats(),
           getSales(),
@@ -28,13 +33,69 @@ const Dashboard = () => {
         setLowStockInventoryItems(allInventoryItems.filter(i => i.current_stock <= i.min_stock_level));
       } catch (error) {
         console.error('Error loading dashboard data:', error);
+        setError('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
       }
     };
 
     loadData();
   }, []);
 
-  if (!stats) return null;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <div className="text-sm text-muted-foreground">
+            Welcome to SalesPro Manager
+          </div>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <div className="text-sm text-muted-foreground">
+            Welcome to SalesPro Manager
+          </div>
+        </div>
+        <Card className="p-8 text-center shadow-card">
+          <AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" />
+          <h3 className="text-lg font-medium mb-2">Error Loading Dashboard</h3>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <div className="text-sm text-muted-foreground">
+            Welcome to SalesPro Manager
+          </div>
+        </div>
+        <Card className="p-8 text-center shadow-card">
+          <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium mb-2">No Data Available</h3>
+          <p className="text-muted-foreground">Start by adding some menu items and inventory items.</p>
+        </Card>
+      </div>
+    );
+  }
 
   const statCards = [
     {
