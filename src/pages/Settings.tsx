@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getMenuItems, getInventoryItems, getSales } from '@/lib/database';
-import { Settings as SettingsIcon, Download, Upload, Trash2 } from 'lucide-react';
+import { Settings as SettingsIcon, Download, Trash2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const Settings = () => {
@@ -150,25 +150,6 @@ const Settings = () => {
               Clear Data
             </Button>
           </div>
-        </div>
-      </Card>
-
-      <Card className="p-6 shadow-card">
-        <h2 className="text-xl font-semibold mb-4">Database Information</h2>
-        <div className="space-y-2 text-sm text-muted-foreground">
-          <p>Database: Supabase (PostgreSQL)</p>
-          <p>Data is stored securely in the cloud and synchronized across all users.</p>
-          <p>To manage data directly, visit your Supabase dashboard.</p>
-        </div>
-      </Card>
-
-      <Card className="p-6 shadow-card">
-        <h2 className="text-xl font-semibold mb-4">About SalesPro Manager</h2>
-        <div className="space-y-2 text-sm text-muted-foreground">
-          <p>Version: 1.0.0</p>
-          <p>A comprehensive sales management application for tracking menu items, inventory, sales, and profits.</p>
-          <p>Features: Menu management, inventory tracking, sales recording, profit calculation</p>
-          <p>Built with React, TypeScript, and Supabase</p>
         </div>
       </Card>
     </div>
