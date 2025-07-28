@@ -1,8 +1,11 @@
+-- SalesPro Manager Database Schema
+-- Updated for Menu/Inventory separation
+
 -- Create menu_items table (finished goods for sales)
 CREATE TABLE menu_items (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
-  sku VARCHAR(100),
+  sku VARCHAR(100), -- SKU is optional (nullable, not unique)
   retail_price DECIMAL(10,2) NOT NULL,
   manufacturing_cost DECIMAL(10,2) NOT NULL,
   current_stock INTEGER DEFAULT 0,
@@ -15,7 +18,7 @@ CREATE TABLE menu_items (
 CREATE TABLE inventory_items (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
-  sku VARCHAR(100),
+  sku VARCHAR(100), -- SKU is optional (nullable, not unique)
   unit_price DECIMAL(10,2) NOT NULL,
   cost_price DECIMAL(10,2) NOT NULL,
   current_stock INTEGER DEFAULT 0,
@@ -109,4 +112,25 @@ CREATE TRIGGER update_menu_items_updated_at
 CREATE TRIGGER update_inventory_items_updated_at
     BEFORE UPDATE ON inventory_items
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column(); 
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Migration script for existing data (if upgrading from old schema)
+-- Uncomment and run these if you have existing data in the old 'products' table
+
+/*
+-- Migrate existing products to menu_items
+INSERT INTO menu_items (id, name, sku, retail_price, manufacturing_cost, current_stock, category, created_at, updated_at)
+SELECT id, name, sku, retail_price, manufacturing_cost, current_stock, category, created_at, updated_at
+FROM products;
+
+-- Update sales table to reference menu_items instead of products
+UPDATE sales SET menu_item_id = product_id;
+
+-- Drop the old foreign key constraint and add the new one
+ALTER TABLE sales DROP CONSTRAINT IF EXISTS sales_product_id_fkey;
+ALTER TABLE sales ADD CONSTRAINT sales_menu_item_id_fkey 
+    FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE;
+
+-- Drop the old products table (only after confirming data migration)
+-- DROP TABLE products;
+*/ 
