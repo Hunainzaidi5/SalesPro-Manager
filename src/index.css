@@ -4,56 +4,58 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%; /* white */
-    --foreground: 0 0% 0%;   /* black */
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 0%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 0%;
-    --primary: 0 0% 0%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 100%;
-    --secondary-foreground: 0 0% 0%;
-    --muted: 0 0% 100%;
-    --muted-foreground: 0 0% 0%;
-    --accent: 0 0% 100%;
-    --accent-foreground: 0 0% 0%;
-    --destructive: 0 0% 0%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 0%;
-    --input: 0 0% 0%;
-    --ring: 0 0% 0%;
-    --radius: 0.5rem;
-    --success: 0 0% 0%;
-    --warning: 0 0% 0%;
-    --sidebar: 0 0% 100%;
-    --main-content: 0 0% 100%;
+    /* Light Theme - Professional Blue/Gray Palette */
+    --background: 210 40% 98%;        /* Very light blue-gray */
+    --foreground: 222 84% 4.9%;       /* Deep navy for text */
+    --card: 0 0% 100%;                /* Pure white cards */
+    --card-foreground: 222 84% 4.9%;  /* Deep navy text on cards */
+    --popover: 0 0% 100%;             /* White popovers */
+    --popover-foreground: 222 84% 4.9%;
+    --primary: 221 83% 53%;           /* Professional blue */
+    --primary-foreground: 210 40% 98%; /* Light text on primary */
+    --secondary: 210 40% 94%;         /* Light blue-gray */
+    --secondary-foreground: 222 47% 11%; /* Darker text */
+    --muted: 210 40% 94%;             /* Subtle background */
+    --muted-foreground: 215 16% 47%;   /* Muted text */
+    --accent: 216 87% 52%;            /* Vibrant accent blue */
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;         /* Professional red */
+    --destructive-foreground: 210 40% 98%;
+    --border: 214 32% 91%;            /* Subtle borders */
+    --input: 214 32% 91%;             /* Input borders */
+    --ring: 221 83% 53%;              /* Focus ring matches primary */
+    --radius: 0.75rem;                /* Increased border radius */
+    --success: 142 76% 36%;           /* Professional green */
+    --warning: 38 92% 50%;            /* Amber warning */
+    --sidebar: 210 40% 96%;           /* Slightly darker than background */
+    --main-content: 0 0% 100%;        /* Pure white content area */
   }
 
   .dark {
-    --background: 0 0% 0%;
-    --foreground: 0 0% 100%;
-    --card: 0 0% 0%;
-    --card-foreground: 0 0% 100%;
-    --popover: 0 0% 0%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 0 0% 0%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 0%;
-    --muted-foreground: 0 0% 100%;
-    --accent: 0 0% 0%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 0% 100%;
-    --destructive-foreground: 0 0% 0%;
-    --border: 0 0% 100%;
-    --input: 0 0% 100%;
-    --ring: 0 0% 100%;
-    --success: 0 0% 100%;
-    --warning: 0 0% 100%;
-    --sidebar: 0 0% 0%;
-    --main-content: 0 0% 0%;
+    /* Dark Theme - Sophisticated Dark Palette */
+    --background: 222 84% 4.9%;       /* Deep navy background */
+    --foreground: 210 40% 98%;        /* Light text */
+    --card: 222 47% 11%;              /* Darker cards for depth */
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;           /* Brighter blue for dark mode */
+    --primary-foreground: 222 84% 4.9%;
+    --secondary: 217 32% 17%;         /* Dark blue-gray */
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;  /* Muted light text */
+    --accent: 216 87% 65%;            /* Brighter accent for visibility */
+    --accent-foreground: 222 84% 4.9%;
+    --destructive: 0 62% 57%;         /* Softer red for dark mode */
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 32% 17%;            /* Dark borders */
+    --input: 217 32% 17%;
+    --ring: 217 91% 60%;              /* Bright focus ring */
+    --success: 142 69% 58%;           /* Brighter green for dark mode */
+    --warning: 38 92% 65%;            /* Brighter amber */
+    --sidebar: 222 47% 8%;            /* Slightly lighter than background */
+    --main-content: 222 84% 4.9%;     /* Same as background for seamless look */
   }
 }
 
@@ -62,24 +64,85 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
 @layer components {
+  /* Enhanced shadows for depth */
   .shadow-card {
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1), 0 0 0 1px rgb(0 0 0 / 0.05);
   }
+  
+  .shadow-card-hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1), 0 0 0 1px rgb(0 0 0 / 0.05);
+  }
+  
   .shadow-button {
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+  
+  .shadow-button-hover {
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   }
+
+  /* Professional gradients */
   .bg-gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
   }
+  
+  .bg-gradient-secondary {
+    background: linear-gradient(135deg, hsl(var(--secondary)) 0%, hsl(var(--muted)) 100%);
+  }
+  
+  .bg-gradient-success {
+    background: linear-gradient(135deg, hsl(var(--success)) 0%, hsl(142 69% 45%) 100%);
+  }
+
+  /* Layout backgrounds */
   .bg-sidebar {
     background-color: hsl(var(--sidebar));
+    border-right: 1px solid hsl(var(--border));
   }
+  
   .bg-main-content {
     background-color: hsl(var(--main-content));
+  }
+
+  /* Professional text styles */
+  .text-brand {
+    color: hsl(var(--primary));
+  }
+  
+  .text-success {
+    color: hsl(var(--success));
+  }
+  
+  .text-warning {
+    color: hsl(var(--warning));
+  }
+
+  /* Enhanced focus states */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background;
+  }
+
+  /* Professional button variants */
+  .btn-primary {
+    @apply bg-primary text-primary-foreground shadow-button hover:shadow-button-hover hover:bg-primary/90 focus-ring;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground shadow-button hover:shadow-button-hover hover:bg-secondary/80 focus-ring;
+  }
+  
+  .btn-outline {
+    @apply border border-input bg-background text-foreground shadow-button hover:bg-accent hover:text-accent-foreground focus-ring;
+  }
+
+  /* Card enhancements */
+  .card-interactive {
+    @apply shadow-card hover:shadow-card-hover transition-shadow duration-200 cursor-pointer;
   }
 }
