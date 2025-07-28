@@ -69,7 +69,7 @@ const Products = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.sku || !formData.retailPrice || !formData.manufacturingCost) {
+    if (!formData.name || !formData.retailPrice || !formData.manufacturingCost) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -193,13 +193,12 @@ const Products = () => {
               </div>
               
               <div>
-                <Label htmlFor="sku">SKU *</Label>
+                <Label htmlFor="sku">SKU</Label>
                 <Input
                   id="sku"
                   value={formData.sku}
                   onChange={(e) => setFormData({...formData, sku: e.target.value})}
-                  placeholder="Enter SKU"
-                  required
+                  placeholder="Enter SKU (optional)"
                 />
               </div>
               

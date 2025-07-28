@@ -19,9 +19,9 @@ const Dashboard = () => {
           getSales(),
           getProducts()
         ]);
-        
-        setStats(dashboardStats);
-        setRecentSales(allSales.slice(-5).reverse());
+      
+      setStats(dashboardStats);
+      setRecentSales(allSales.slice(-5).reverse());
         setLowStockProducts(allProducts.filter(p => p.current_stock <= 5));
       } catch (error) {
         console.error('Error loading dashboard data:', error);

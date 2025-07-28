@@ -2,7 +2,7 @@
 CREATE TABLE products (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
-  sku VARCHAR(100) UNIQUE NOT NULL,
+  sku VARCHAR(100),
   retail_price DECIMAL(10,2) NOT NULL,
   manufacturing_cost DECIMAL(10,2) NOT NULL,
   current_stock INTEGER DEFAULT 0,

@@ -107,7 +107,7 @@ const Sales = () => {
     // Search filter
     if (searchTerm) {
       filtered = filtered.filter(sale =>
-        sale.productName.toLowerCase().includes(searchTerm.toLowerCase())
+        sale.product_name.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -143,7 +143,7 @@ const Sales = () => {
       : 0
   };
 
-  const availableProducts = products.filter(p => p.currentStock > 0);
+  const availableProducts = products.filter(p => p.current_stock > 0);
 
   return (
     <div className="space-y-6">
@@ -170,7 +170,7 @@ const Sales = () => {
                   <SelectContent>
                     {availableProducts.map((product) => (
                       <SelectItem key={product.id} value={product.id}>
-                        {product.name} (Stock: {product.currentStock}) - Rs{product.retailPrice}
+                        {product.name} (Stock: {product.current_stock}) - Rs{product.retail_price}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -184,22 +184,22 @@ const Sales = () => {
                     if (!product) return null;
                     
                     const quantityNum = parseInt(quantity) || 0;
-                    const revenue = product.retailPrice * quantityNum;
-                    const profit = (product.retailPrice - product.manufacturingCost) * quantityNum;
+                    const revenue = product.retail_price * quantityNum;
+                    const profit = (product.retail_price - product.manufacturing_cost) * quantityNum;
                     
                     return (
                       <div className="space-y-1">
                         <div className="flex justify-between">
                           <span>Retail Price:</span>
-                          <span>Rs{product.retailPrice.toFixed(2)}</span>
+                          <span>Rs{product.retail_price.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Manufacturing Cost:</span>
-                          <span>Rs{product.manufacturingCost.toFixed(2)}</span>
+                          <span>Rs{product.manufacturing_cost.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Available Stock:</span>
-                          <span>{product.currentStock}</span>
+                          <span>{product.current_stock}</span>
                         </div>
                         {quantityNum > 0 && (
                           <>
@@ -345,7 +345,7 @@ const Sales = () => {
           <Card key={sale.id} className="p-6 shadow-card">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-lg">{sale.productName}</h3>
+                <h3 className="font-semibold text-lg">{sale.product_name}</h3>
                 <p className="text-sm text-muted-foreground">
                   {new Date(sale.date).toLocaleString()}
                 </p>
@@ -354,11 +354,11 @@ const Sales = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div className="text-center">
                   <p className="text-muted-foreground">Quantity</p>
-                  <p className="font-medium text-lg">{sale.quantitySold}</p>
+                  <p className="font-medium text-lg">{sale.quantity_sold}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-muted-foreground">Unit Price</p>
-                  <p className="font-medium">Rs{sale.retailPrice.toFixed(2)}</p>
+                  <p className="font-medium">Rs{sale.retail_price.toFixed(2)}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-muted-foreground">Revenue</p>

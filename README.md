@@ -90,7 +90,7 @@ Open [http://localhost:5173](http://localhost:5173) to view it in the browser.
 ### Products Table
 - `id` - UUID (Primary Key)
 - `name` - Product name
-- `sku` - Stock Keeping Unit (Unique)
+- `sku` - Stock Keeping Unit (**optional**)
 - `retail_price` - Selling price
 - `manufacturing_cost` - Production cost
 - `current_stock` - Available quantity
@@ -151,7 +151,7 @@ The app can be deployed to any static hosting service:
 - Quick action buttons
 
 ### Products Management
-- Add new products with SKU, pricing, and stock
+- Add new products with SKU (optional), pricing, and stock
 - Edit existing product details
 - Delete products
 - Search and filter products
@@ -194,7 +194,3 @@ If you encounter any issues or have questions:
 - **v1.0.0** - Initial release with basic POS functionality
 - **v1.1.0** - Added Supabase database integration
 - **v1.2.0** - Enhanced UI and added real-time updates
-
----
-
-**Built with ❤️ using React, TypeScript, and Supabase**
