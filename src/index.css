@@ -2,105 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
-/* SalesPro Manager Design System - Professional sales dashboard theme */
-
 @layer base {
   :root {
     --background: 0 0% 100%; /* white */
     --foreground: 0 0% 0%;   /* black */
-
     --card: 0 0% 100%;
     --card-foreground: 0 0% 0%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 0%;
-
-    --primary: 0 0% 0%;      /* black */
-    --primary-foreground: 0 0% 100%; /* white */
-    --primary-hover: 0 0% 20%; /* dark gray for hover */
-
-    --secondary: 0 0% 20%;   /* dark gray */
-    --secondary-foreground: 0 0% 100%;
-    --secondary-hover: 0 0% 0%;
-
-    --success: 0 0% 0%;
-    --success-foreground: 0 0% 100%;
-    
-    --warning: 0 0% 0%;
-    --warning-foreground: 0 0% 100%;
-
-    --muted: 0 0% 95%;
-    --muted-foreground: 0 0% 40%;
-
-    --accent: 0 0% 0%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 84% 60%;
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 100%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 100%;
+    --muted-foreground: 0 0% 0%;
+    --accent: 0 0% 100%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 0% 0%;
     --destructive-foreground: 0 0% 100%;
-
-    --border: 0 0% 80%;
-    --input: 0 0% 80%;
+    --border: 0 0% 0%;
+    --input: 0 0% 0%;
     --ring: 0 0% 0%;
-
-    --gradient-primary: linear-gradient(135deg, hsl(0 0% 0%), hsl(0 0% 40%));
-    --gradient-success: linear-gradient(135deg, hsl(0 0% 0%), hsl(0 0% 20%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(0 0% 95%));
-    
-    --shadow-card: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.06);
-    --shadow-button: 0 2px 4px -1px hsl(0 0% 0% / 0.3);
-
-    --radius: 0.75rem;
-
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 0%;
-    --sidebar-primary: 0 0% 0%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 95%;
-    --sidebar-accent-foreground: 0 0% 0%;
-    --sidebar-border: 0 0% 80%;
-    --sidebar-ring: 0 0% 0%;
-    --sidebar: 0 0% 44%; /* #707070 */
-    --main-content: 82 47% 56%; /* #99C24D */
+    --radius: 0.5rem;
+    --success: 0 0% 0%;
+    --warning: 0 0% 0%;
+    --sidebar: 0 0% 100%;
+    --main-content: 0 0% 100%;
   }
 
   .dark {
-    --background: 0 0% 0%;   /* black */
-    --foreground: 0 0% 100%; /* white */
-
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
     --card: 0 0% 0%;
     --card-foreground: 0 0% 100%;
-
     --popover: 0 0% 0%;
     --popover-foreground: 0 0% 100%;
-
-    --primary: 0 0% 100%;    /* white */
+    --primary: 0 0% 100%;
     --primary-foreground: 0 0% 0%;
-
-    --secondary: 0 0% 80%;   /* light gray */
-    --secondary-foreground: 0 0% 0%;
-
-    --muted: 0 0% 20%;
+    --secondary: 0 0% 0%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 0%;
     --muted-foreground: 0 0% 100%;
-
-    --accent: 0 0% 100%;
-    --accent-foreground: 0 0% 0%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
+    --accent: 0 0% 0%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 0% 100%;
+    --destructive-foreground: 0 0% 0%;
+    --border: 0 0% 100%;
+    --input: 0 0% 100%;
     --ring: 0 0% 100%;
-    --sidebar-background: 0 0% 0%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 20%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 0 0% 100%;
-    --sidebar: 0 0% 44%; /* #707070 */
-    --main-content: 82 47% 56%; /* #99C24D */
+    --success: 0 0% 100%;
+    --warning: 0 0% 100%;
+    --sidebar: 0 0% 0%;
+    --main-content: 0 0% 0%;
   }
 }
 
@@ -108,7 +61,6 @@
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground;
   }
@@ -118,19 +70,15 @@
   .shadow-card {
     box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   }
-  
   .shadow-button {
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   }
-  
   .bg-gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 100%);
   }
-  
   .bg-sidebar {
     background-color: hsl(var(--sidebar));
   }
-  
   .bg-main-content {
     background-color: hsl(var(--main-content));
   }
