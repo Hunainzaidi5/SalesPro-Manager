@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getDashboardStats, getProducts, getSales } from '@/lib/database';
 import type { DashboardStats, Product, Sale } from '@/lib/supabase';
-import { TrendingUp, Package, ShoppingCart, DollarSign, AlertTriangle } from 'lucide-react';
+import { TrendingUp, Package, ShoppingCart, DollarSign, AlertTriangle, Warehouse } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
@@ -56,6 +56,13 @@ const Dashboard = () => {
       bgColor: 'bg-primary/10'
     },
     {
+      title: 'Inventory Items',
+      value: stats.totalProducts.toString(),
+      icon: Warehouse,
+      color: 'text-secondary',
+      bgColor: 'bg-secondary/10'
+    },
+    {
       title: 'Total Sales',
       value: stats.totalSales.toString(),
       icon: ShoppingCart,
@@ -93,7 +100,7 @@ const Dashboard = () => {
         })}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-3">
         {/* Recent Sales */}
         <Card className="p-6 shadow-card">
           <div className="flex items-center justify-between mb-4">

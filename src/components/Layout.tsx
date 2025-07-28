@@ -7,7 +7,8 @@ import {
   ShoppingCart, 
   TrendingUp, 
   Settings,
-  Menu
+  Menu,
+  Warehouse
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -22,7 +23,7 @@ const Layout = ({ children }: LayoutProps) => {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: BarChart3 },
     { name: 'Products', href: '/products', icon: Package },
-    { name: 'Inventory', href: '/inventory', icon: TrendingUp },
+    { name: 'Inventory', href: '/inventory', icon: Warehouse },
     { name: 'Sales', href: '/sales', icon: ShoppingCart },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
