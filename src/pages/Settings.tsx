@@ -11,11 +11,9 @@ const Settings = () => {
   const handleExportData = async () => {
     try {
       // Fetch data from database
-      const [menuItems, inventoryItems, sales] = await Promise.all([
-        getMenuItems(),
-        getInventoryItems(),
-        getSales()
-      ]);
+      const menuItems = await getMenuItems();
+      const inventoryItems = await getInventoryItems();
+      const sales = await getSales();
       
       // Create workbook with multiple sheets
       const workbook = XLSX.utils.book_new();
@@ -38,13 +36,13 @@ const Settings = () => {
       
       // Inventory Items sheet
       const inventoryItemsData = inventoryItems.map(inventoryItem => ({
-        'Inventory Item Name': inventoryItem.name,
+        'Item Name': inventoryItem.name,
         'SKU': inventoryItem.sku || 'N/A',
         'Category': inventoryItem.category || 'N/A',
-        'Unit Price': inventoryItem.unit_price,
-        'Cost Price': inventoryItem.cost_price,
+        'Unit Cost': inventoryItem.unit_cost,
         'Current Stock': inventoryItem.current_stock,
-        'Stock Value': inventoryItem.current_stock * inventoryItem.cost_price,
+        'Min Stock Level': inventoryItem.min_stock_level,
+        'Stock Value': inventoryItem.current_stock * inventoryItem.unit_cost,
         'Created Date': new Date(inventoryItem.created_at).toLocaleDateString(),
         'Last Updated': new Date(inventoryItem.updated_at).toLocaleDateString()
       }));
@@ -54,7 +52,7 @@ const Settings = () => {
       
       // Sales sheet
       const salesData = sales.map(sale => ({
-        'Product Name': sale.product_name,
+        'Menu Item Name': sale.menu_item_name,
         'Quantity Sold': sale.quantity_sold,
         'Unit Price': sale.retail_price,
         'Revenue': sale.revenue,
@@ -72,8 +70,8 @@ const Settings = () => {
       const totalMenuItems = menuItems.length;
       const totalInventoryItems = inventoryItems.length;
       const totalSales = sales.length;
-      const menuInventoryValue = menuItems.reduce((sum, menuItem) => sum + (menuItem.current_stock * menuItem.retail_price), 0);
-      const inventoryValue = inventoryItems.reduce((sum, inventoryItem) => sum + (inventoryItem.current_stock * inventoryItem.cost_price), 0);
+      const menuInventoryValue = menuItems.reduce((sum, item) => sum + (item.current_stock * item.retail_price), 0);
+      const inventoryValue = inventoryItems.reduce((sum, item) => sum + (item.current_stock * item.unit_cost), 0);
       
       const summaryData = [
         { 'Metric': 'Total Menu Items', 'Value': totalMenuItems },
@@ -109,7 +107,7 @@ const Settings = () => {
   };
 
   const handleClearData = () => {
-    if (window.confirm('Are you sure? This will delete all products and sales data from the database. This action cannot be undone.')) {
+    if (window.confirm('Are you sure? This will delete all menu items, inventory items, and sales data from the database. This action cannot be undone.')) {
       toast({
         title: "Warning",
         description: "Data clearing is not implemented for database. Please use Supabase dashboard to clear data if needed.",
@@ -131,7 +129,7 @@ const Settings = () => {
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div>
               <h3 className="font-medium">Export Data</h3>
-              <p className="text-sm text-muted-foreground">Download your products and sales data as Excel file (XLSX)</p>
+              <p className="text-sm text-muted-foreground">Download your menu items, inventory items, and sales data as Excel file (XLSX)</p>
             </div>
             <Button onClick={handleExportData} variant="outline">
               <Download className="mr-2 h-4 w-4" />
@@ -142,7 +140,7 @@ const Settings = () => {
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div>
               <h3 className="font-medium">Clear All Data</h3>
-              <p className="text-sm text-muted-foreground">Delete all products and sales data from database</p>
+              <p className="text-sm text-muted-foreground">Delete all menu items, inventory items, and sales data from database</p>
             </div>
             <Button onClick={handleClearData} variant="destructive">
               <Trash2 className="mr-2 h-4 w-4" />
@@ -165,8 +163,8 @@ const Settings = () => {
         <h2 className="text-xl font-semibold mb-4">About SalesPro Manager</h2>
         <div className="space-y-2 text-sm text-muted-foreground">
           <p>Version: 1.0.0</p>
-          <p>A comprehensive sales management application for tracking inventory, sales, and profits.</p>
-          <p>Features: Product management, inventory tracking, sales recording, profit calculation</p>
+          <p>A comprehensive sales management application for tracking menu items, inventory, sales, and profits.</p>
+          <p>Features: Menu management, inventory tracking, sales recording, profit calculation</p>
           <p>Built with React, TypeScript, and Supabase</p>
         </div>
       </Card>

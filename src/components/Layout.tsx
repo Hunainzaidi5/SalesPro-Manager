@@ -11,7 +11,6 @@ import {
   Warehouse
 } from 'lucide-react';
 import { useState } from 'react';
-import ThemeToggle from './ThemeToggle';
 
 interface LayoutProps {
   children: ReactNode;
@@ -23,7 +22,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: BarChart3 },
-    { name: 'Menu', href: '/menu', icon: Package },
+    { name: 'Menu', href: '/products', icon: Package },
     { name: 'Inventory', href: '/inventory', icon: Warehouse },
     { name: 'Sales', href: '/sales', icon: ShoppingCart },
     { name: 'Settings', href: '/settings', icon: Settings },
@@ -34,13 +33,12 @@ const Layout = ({ children }: LayoutProps) => {
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? '' : 'hidden'}`}>
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-        <div className="fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border">
+        <div className="fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-border">
           <div className="flex h-full flex-col">
-            <div className="flex h-16 items-center justify-between px-6 border-b border-border">
+            <div className="flex h-16 items-center px-6 border-b border-border">
               <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                 SalesPro Manager
               </h1>
-              <ThemeToggle />
             </div>
             <nav className="flex-1 space-y-1 p-4">
               {navigation.map((item) => {
@@ -69,12 +67,11 @@ const Layout = ({ children }: LayoutProps) => {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-card border-r border-border">
-          <div className="flex h-16 shrink-0 items-center justify-between px-6 border-b border-border">
+        <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-sidebar border-r border-border">
+          <div className="flex h-16 shrink-0 items-center px-6 border-b border-border">
             <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
               SalesPro Manager
             </h1>
-            <ThemeToggle />
           </div>
           <nav className="flex flex-1 flex-col px-4">
             <ul role="list" className="flex flex-1 flex-col gap-y-2">
@@ -122,7 +119,7 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
 
         {/* Page content */}
-        <main className="py-6">
+        <main className="py-6 bg-main-content min-h-screen">
           <div className="px-4 sm:px-6 lg:px-8">
             {children}
           </div>

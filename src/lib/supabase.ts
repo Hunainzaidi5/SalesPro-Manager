@@ -22,10 +22,10 @@ export interface InventoryItem {
   id: string
   name: string
   sku: string
-  unit_price: number
-  cost_price: number
+  unit_cost: number
   current_stock: number
   category?: string
+  min_stock_level: number
   created_at: string
   updated_at: string
 }
@@ -33,7 +33,7 @@ export interface InventoryItem {
 export interface Sale {
   id: string
   menu_item_id: string
-  product_name: string
+  menu_item_name: string
   quantity_sold: number
   date: string
   retail_price: number

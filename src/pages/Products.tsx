@@ -177,11 +177,11 @@ const Menu = () => {
     return true;
   });
 
-  const categories = [...new Set(menuItems.map(p => p.category).filter(Boolean))];
+  const categories = [...new Set(menuItems.map(m => m.category).filter(Boolean))];
   const totalMenuItems = menuItems.length;
-  const totalValue = menuItems.reduce((sum, p) => sum + (p.current_stock * p.retail_price), 0);
-  const totalSales = menuItems.reduce((sum, p) => sum + p.salesStats.totalSales, 0);
-  const totalRevenue = menuItems.reduce((sum, p) => sum + p.salesStats.totalRevenue, 0);
+  const totalValue = menuItems.reduce((sum, m) => sum + (m.current_stock * m.retail_price), 0);
+  const totalSales = menuItems.reduce((sum, m) => sum + m.salesStats.totalSales, 0);
+  const totalRevenue = menuItems.reduce((sum, m) => sum + m.salesStats.totalRevenue, 0);
 
   return (
     <div className="space-y-6">
@@ -464,4 +464,4 @@ const Menu = () => {
   );
 };
 
-export default Menu; 
+export default Menu;

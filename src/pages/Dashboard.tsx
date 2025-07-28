@@ -10,19 +10,22 @@ const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
   const [lowStockMenuItems, setLowStockMenuItems] = useState<MenuItem[]>([]);
+  const [lowStockInventoryItems, setLowStockInventoryItems] = useState<InventoryItem[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [dashboardStats, allSales, allMenuItems] = await Promise.all([
+        const [dashboardStats, allSales, allMenuItems, allInventoryItems] = await Promise.all([
           getDashboardStats(),
           getSales(),
-          getMenuItems()
+          getMenuItems(),
+          getInventoryItems()
         ]);
       
-      setStats(dashboardStats);
-      setRecentSales(allSales.slice(-5).reverse());
-        setLowStockMenuItems(allMenuItems.filter(p => p.current_stock <= 5));
+        setStats(dashboardStats);
+        setRecentSales(allSales.slice(-5).reverse());
+        setLowStockMenuItems(allMenuItems.filter(m => m.current_stock <= 5));
+        setLowStockInventoryItems(allInventoryItems.filter(i => i.current_stock <= i.min_stock_level));
       } catch (error) {
         console.error('Error loading dashboard data:', error);
       }
@@ -81,7 +84,7 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -106,95 +109,94 @@ const Dashboard = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Recent Sales</h2>
             <Link to="/sales">
-              <Button variant="outline" size="sm">View All</Button>
+              <Button variant="outline" size="sm">
+                View All
+              </Button>
             </Link>
           </div>
           <div className="space-y-3">
-            {recentSales.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">No sales recorded yet</p>
-            ) : (
-              recentSales.map((sale) => (
-                <div key={sale.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div>
-                    <p className="font-medium">{sale.product_name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Qty: {sale.quantity_sold} • {new Date(sale.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-success">Rs{sale.revenue.toFixed(2)}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Profit: Rs{sale.profit.toFixed(2)}
-                    </p>
-                  </div>
+            {recentSales.map((sale) => (
+              <div key={sale.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                <div>
+                  <p className="font-medium">{sale.menu_item_name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(sale.date).toLocaleDateString()}
+                  </p>
                 </div>
-              ))
+                <div className="text-right">
+                  <p className="font-medium text-success">Rs{sale.revenue.toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">Qty: {sale.quantity_sold}</p>
+                </div>
+              </div>
+            ))}
+            {recentSales.length === 0 && (
+              <p className="text-center text-muted-foreground py-4">No recent sales</p>
             )}
           </div>
         </Card>
 
-        {/* Low Stock Alert */}
+        {/* Low Stock Menu Items */}
         <Card className="p-6 shadow-card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-warning" />
-              Low Stock Alert
-            </h2>
-            <Link to="/inventory">
-              <Button variant="outline" size="sm">Manage Inventory</Button>
+            <h2 className="text-xl font-semibold">Low Stock Menu Items</h2>
+            <Link to="/products">
+              <Button variant="outline" size="sm">
+                View All
+              </Button>
             </Link>
           </div>
           <div className="space-y-3">
-            {lowStockMenuItems.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">All menu items are well stocked!</p>
-            ) : (
-              lowStockMenuItems.map((menuItem) => (
-                <div key={menuItem.id} className="flex items-center justify-between p-3 bg-warning/10 rounded-lg border border-warning/20">
-                  <div>
-                    <p className="font-medium">{menuItem.name}</p>
-                    <p className="text-sm text-muted-foreground">SKU: {menuItem.sku}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-warning">{menuItem.current_stock} left</p>
-                    <p className="text-sm text-muted-foreground">Restock needed</p>
-                  </div>
+            {lowStockMenuItems.map((menuItem) => (
+              <div key={menuItem.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                <div>
+                  <p className="font-medium">{menuItem.name}</p>
+                  <p className="text-sm text-muted-foreground">{menuItem.category || 'No category'}</p>
                 </div>
-              ))
+                <div className="text-right">
+                  <p className={`font-medium ${menuItem.current_stock === 0 ? 'text-destructive' : 'text-warning'}`}>
+                    {menuItem.current_stock} in stock
+                  </p>
+                  <p className="text-sm text-muted-foreground">Rs{menuItem.retail_price}</p>
+                </div>
+              </div>
+            ))}
+            {lowStockMenuItems.length === 0 && (
+              <p className="text-center text-muted-foreground py-4">All menu items well stocked</p>
+            )}
+          </div>
+        </Card>
+
+        {/* Low Stock Inventory Items */}
+        <Card className="p-6 shadow-card">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Low Stock Inventory</h2>
+            <Link to="/inventory">
+              <Button variant="outline" size="sm">
+                View All
+              </Button>
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {lowStockInventoryItems.map((inventoryItem) => (
+              <div key={inventoryItem.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                <div>
+                  <p className="font-medium">{inventoryItem.name}</p>
+                  <p className="text-sm text-muted-foreground">{inventoryItem.category || 'No category'}</p>
+                </div>
+                <div className="text-right">
+                  <p className={`font-medium ${inventoryItem.current_stock === 0 ? 'text-destructive' : 'text-warning'}`}>
+                    {inventoryItem.current_stock} in stock
+                  </p>
+                  <p className="text-sm text-muted-foreground">Min: {inventoryItem.min_stock_level}</p>
+                </div>
+              </div>
+            ))}
+            {lowStockInventoryItems.length === 0 && (
+              <p className="text-center text-muted-foreground py-4">All inventory items well stocked</p>
             )}
           </div>
         </Card>
       </div>
-
-      {/* Quick Actions */}
-      <Card className="p-6 shadow-card">
-        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Link to="/menu">
-            <Button className="w-full justify-start" variant="outline">
-              <Package className="mr-2 h-4 w-4" />
-              Add Menu Item
-            </Button>
-          </Link>
-          <Link to="/sales">
-            <Button className="w-full justify-start" variant="outline">
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Record Sale
-            </Button>
-          </Link>
-          <Link to="/inventory">
-            <Button className="w-full justify-start" variant="outline">
-              <TrendingUp className="mr-2 h-4 w-4" />
-              Update Stock
-            </Button>
-          </Link>
-          <Link to="/menu">
-            <Button className="w-full justify-start" variant="outline">
-              <DollarSign className="mr-2 h-4 w-4" />
-              Update Prices
-            </Button>
-          </Link>
-        </div>
-      </Card>
     </div>
   );
 };

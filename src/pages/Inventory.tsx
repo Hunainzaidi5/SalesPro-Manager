@@ -28,10 +28,10 @@ const Inventory = () => {
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
-    unitPrice: '',
-    costPrice: '',
+    unitCost: '',
     currentStock: '',
-    category: ''
+    category: '',
+    minStockLevel: '5'
   });
 
   useEffect(() => {
@@ -54,9 +54,9 @@ const Inventory = () => {
     }
   };
 
-  const getStockStatus = (stock: number) => {
+  const getStockStatus = (stock: number, minStockLevel: number) => {
     if (stock === 0) return { status: 'out', label: 'Out of Stock', color: 'destructive' };
-    if (stock <= 5) return { status: 'low', label: 'Low Stock', color: 'warning' };
+    if (stock <= minStockLevel) return { status: 'low', label: 'Low Stock', color: 'warning' };
     return { status: 'good', label: 'In Stock', color: 'success' };
   };
 
@@ -109,7 +109,7 @@ const Inventory = () => {
   const handleAddInventoryItem = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.unitPrice || !formData.costPrice) {
+    if (!formData.name || !formData.unitCost) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -121,10 +121,10 @@ const Inventory = () => {
     const inventoryItemData = {
       name: formData.name,
       sku: formData.sku,
-      unit_price: parseFloat(formData.unitPrice),
-      cost_price: parseFloat(formData.costPrice),
+      unit_cost: parseFloat(formData.unitCost),
       current_stock: parseInt(formData.currentStock) || 0,
-      category: formData.category
+      category: formData.category,
+      min_stock_level: parseInt(formData.minStockLevel) || 5
     };
 
     try {
@@ -148,7 +148,7 @@ const Inventory = () => {
   const handleEditInventoryItem = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedInventoryItem || !formData.name || !formData.unitPrice || !formData.costPrice) {
+    if (!selectedInventoryItem || !formData.name || !formData.unitCost) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -160,10 +160,10 @@ const Inventory = () => {
     const inventoryItemData = {
       name: formData.name,
       sku: formData.sku,
-      unit_price: parseFloat(formData.unitPrice),
-      cost_price: parseFloat(formData.costPrice),
+      unit_cost: parseFloat(formData.unitCost),
       current_stock: parseInt(formData.currentStock) || 0,
-      category: formData.category
+      category: formData.category,
+      min_stock_level: parseInt(formData.minStockLevel) || 5
     };
 
     try {
@@ -215,10 +215,10 @@ const Inventory = () => {
     setFormData({
       name: inventoryItem.name,
       sku: inventoryItem.sku || '',
-      unitPrice: inventoryItem.unit_price.toString(),
-      costPrice: inventoryItem.cost_price.toString(),
+      unitCost: inventoryItem.unit_cost.toString(),
       currentStock: inventoryItem.current_stock.toString(),
-      category: inventoryItem.category || ''
+      category: inventoryItem.category || '',
+      minStockLevel: inventoryItem.min_stock_level.toString()
     });
     setIsEditDialogOpen(true);
   };
@@ -227,10 +227,10 @@ const Inventory = () => {
     setFormData({
       name: '',
       sku: '',
-      unitPrice: '',
-      costPrice: '',
+      unitCost: '',
       currentStock: '',
-      category: ''
+      category: '',
+      minStockLevel: '5'
     });
     setSelectedInventoryItem(null);
   };
@@ -241,7 +241,7 @@ const Inventory = () => {
     
     if (!matchesSearch) return false;
     
-    const stockStatus = getStockStatus(inventoryItem.current_stock);
+    const stockStatus = getStockStatus(inventoryItem.current_stock, inventoryItem.min_stock_level);
     if (filterStatus === 'all') return true;
     if (filterStatus === 'low') return stockStatus.status === 'low';
     if (filterStatus === 'out') return stockStatus.status === 'out';
@@ -251,12 +251,12 @@ const Inventory = () => {
     return true;
   });
 
-  const categories = [...new Set(inventoryItems.map(p => p.category).filter(Boolean))];
+  const categories = [...new Set(inventoryItems.map(i => i.category).filter(Boolean))];
   const stockSummary = {
     total: inventoryItems.length,
-    lowStock: inventoryItems.filter(p => p.current_stock <= 5 && p.current_stock > 0).length,
-    outOfStock: inventoryItems.filter(p => p.current_stock === 0).length,
-    totalValue: inventoryItems.reduce((sum, p) => sum + (p.current_stock * p.cost_price), 0)
+    lowStock: inventoryItems.filter(i => i.current_stock <= i.min_stock_level && i.current_stock > 0).length,
+    outOfStock: inventoryItems.filter(i => i.current_stock === 0).length,
+    totalValue: inventoryItems.reduce((sum, i) => sum + (i.current_stock * i.unit_cost), 0)
   };
 
   return (
@@ -311,27 +311,25 @@ const Inventory = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="unitPrice">Unit Price *</Label>
+                  <Label htmlFor="unitCost">Unit Cost *</Label>
                   <Input
-                    id="unitPrice"
+                    id="unitCost"
                     type="number"
                     step="0.01"
-                    value={formData.unitPrice}
-                    onChange={(e) => setFormData({...formData, unitPrice: e.target.value})}
+                    value={formData.unitCost}
+                    onChange={(e) => setFormData({...formData, unitCost: e.target.value})}
                     placeholder="0.00"
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="costPrice">Cost Price *</Label>
+                  <Label htmlFor="minStockLevel">Min Stock Level</Label>
                   <Input
-                    id="costPrice"
+                    id="minStockLevel"
                     type="number"
-                    step="0.01"
-                    value={formData.costPrice}
-                    onChange={(e) => setFormData({...formData, costPrice: e.target.value})}
-                    placeholder="0.00"
-                    required
+                    value={formData.minStockLevel}
+                    onChange={(e) => setFormData({...formData, minStockLevel: e.target.value})}
+                    placeholder="5"
                   />
                 </div>
               </div>
@@ -473,7 +471,7 @@ const Inventory = () => {
       ) : (
         <div className="space-y-4">
           {filteredInventoryItems.map((inventoryItem) => {
-            const stockStatus = getStockStatus(inventoryItem.current_stock);
+            const stockStatus = getStockStatus(inventoryItem.current_stock, inventoryItem.min_stock_level);
             
             return (
               <Card key={inventoryItem.id} className="p-6 shadow-card">
@@ -486,7 +484,7 @@ const Inventory = () => {
                       </Badge>
                     </div>
                     
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground">SKU</p>
                         <p className="font-medium">{inventoryItem.sku || 'N/A'}</p>
@@ -499,19 +497,23 @@ const Inventory = () => {
                         <p className="text-muted-foreground">Current Stock</p>
                         <p className={`font-medium text-lg ${
                           inventoryItem.current_stock === 0 ? 'text-destructive' :
-                          inventoryItem.current_stock <= 5 ? 'text-warning' : 'text-success'
+                          inventoryItem.current_stock <= inventoryItem.min_stock_level ? 'text-warning' : 'text-success'
                         }`}>
                           {inventoryItem.current_stock}
                         </p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Unit Cost</p>
-                        <p className="font-medium">Rs{inventoryItem.cost_price.toFixed(2)}</p>
+                        <p className="font-medium">Rs{inventoryItem.unit_cost.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Min Stock Level</p>
+                        <p className="font-medium">{inventoryItem.min_stock_level}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Stock Value</p>
                         <p className="font-medium">
-                          Rs{(inventoryItem.current_stock * inventoryItem.cost_price).toFixed(2)}
+                          Rs{(inventoryItem.current_stock * inventoryItem.unit_cost).toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -643,27 +645,25 @@ const Inventory = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="editUnitPrice">Unit Price *</Label>
+                <Label htmlFor="editUnitCost">Unit Cost *</Label>
                 <Input
-                  id="editUnitPrice"
+                  id="editUnitCost"
                   type="number"
                   step="0.01"
-                  value={formData.unitPrice}
-                  onChange={(e) => setFormData({...formData, unitPrice: e.target.value})}
+                  value={formData.unitCost}
+                  onChange={(e) => setFormData({...formData, unitCost: e.target.value})}
                   placeholder="0.00"
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="editCostPrice">Cost Price *</Label>
+                <Label htmlFor="editMinStockLevel">Min Stock Level</Label>
                 <Input
-                  id="editCostPrice"
+                  id="editMinStockLevel"
                   type="number"
-                  step="0.01"
-                  value={formData.costPrice}
-                  onChange={(e) => setFormData({...formData, costPrice: e.target.value})}
-                  placeholder="0.00"
-                  required
+                  value={formData.minStockLevel}
+                  onChange={(e) => setFormData({...formData, minStockLevel: e.target.value})}
+                  placeholder="5"
                 />
               </div>
             </div>

@@ -44,7 +44,7 @@ export const deleteMenuItem = async (id: string): Promise<void> => {
   if (error) throw error
 }
 
-export const getMenuItemSalesStats = async (menuItemId: string) => {
+export const getMenuItemSalesStats = async (menuItemId: string): Promise<{ totalSales: number; totalRevenue: number }> => {
   const { data, error } = await supabase
     .from('sales')
     .select('quantity_sold, revenue')
@@ -120,6 +120,16 @@ export const addSale = async (sale: Omit<Sale, 'id' | 'created_at'>): Promise<Sa
     .single()
 
   if (error) throw error
+
+  // Update menu item stock
+  const menuItem = await getMenuItems()
+  const item = menuItem.find(item => item.id === sale.menu_item_id)
+  if (item) {
+    await updateMenuItem(sale.menu_item_id, {
+      current_stock: item.current_stock - sale.quantity_sold
+    })
+  }
+
   return data
 }
 
@@ -133,19 +143,15 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 
   const totalRevenue = sales.reduce((sum, sale) => sum + sale.revenue, 0)
   const totalProfit = sales.reduce((sum, sale) => sum + sale.profit, 0)
+  const totalMenuItems = menuItems.length
+  const totalInventoryItems = inventoryItems.length
+  const totalSales = sales.length
 
   return {
     totalRevenue,
     totalProfit,
-    totalMenuItems: menuItems.length,
-    totalInventoryItems: inventoryItems.length,
-    totalSales: sales.length
+    totalMenuItems,
+    totalInventoryItems,
+    totalSales
   }
-}
-
-// Legacy functions for backward compatibility (will be removed)
-export const getProducts = getMenuItems
-export const addProduct = addMenuItem
-export const updateProduct = updateMenuItem
-export const deleteProduct = deleteMenuItem
-export const getProductSalesStats = getMenuItemSalesStats 
+} 

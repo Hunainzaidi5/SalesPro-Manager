@@ -6,9 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { getSales, addSale, getMenuItems, updateMenuItem } from '@/lib/database';
+import { getSales, addSale, getMenuItems } from '@/lib/database';
 import type { Sale, MenuItem } from '@/lib/supabase';
-import { Plus, ShoppingCart, DollarSign, TrendingUp, Calendar } from 'lucide-react';
+import { Plus, ShoppingCart, TrendingUp, DollarSign } from 'lucide-react';
 
 const Sales = () => {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -78,7 +78,7 @@ const Sales = () => {
       return;
     }
 
-    if (quantityNum > selectedMenuItem.current_stock) {
+    if (selectedMenuItem.current_stock < quantityNum) {
       toast({
         title: "Validation Error",
         description: "Insufficient stock available",
@@ -92,7 +92,7 @@ const Sales = () => {
 
     const saleData = {
       menu_item_id: selectedMenuItemId,
-      product_name: selectedMenuItem.name,
+      menu_item_name: selectedMenuItem.name,
       quantity_sold: quantityNum,
       date: new Date().toISOString(),
       retail_price: selectedMenuItem.retail_price,
@@ -103,16 +103,11 @@ const Sales = () => {
 
     try {
       await addSale(saleData);
-      
-      // Update menu item stock
-      const newStock = selectedMenuItem.current_stock - quantityNum;
-      await updateMenuItem(selectedMenuItemId, { current_stock: newStock });
-      
       toast({
         title: "Success",
         description: "Sale recorded successfully",
       });
-
+      
       setSelectedMenuItemId('');
       setQuantity('');
       setIsDialogOpen(false);
@@ -132,7 +127,7 @@ const Sales = () => {
     // Search filter
     if (searchTerm) {
       filtered = filtered.filter(sale =>
-        sale.product_name.toLowerCase().includes(searchTerm.toLowerCase())
+        sale.menu_item_name.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -168,7 +163,7 @@ const Sales = () => {
       : 0
   };
 
-  const availableMenuItems = menuItems.filter(p => p.current_stock > 0);
+  const availableMenuItems = menuItems.filter(m => m.current_stock > 0);
 
   return (
     <div className="space-y-6">
@@ -205,7 +200,7 @@ const Sales = () => {
               {selectedMenuItemId && (
                 <div className="p-3 bg-muted/50 rounded-lg text-sm">
                   {(() => {
-                    const menuItem = menuItems.find(p => p.id === selectedMenuItemId);
+                    const menuItem = menuItems.find(m => m.id === selectedMenuItemId);
                     if (!menuItem) return null;
                     
                     const quantityNum = parseInt(quantity) || 0;
@@ -312,7 +307,7 @@ const Sales = () => {
         <Card className="p-4 shadow-card">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-warning/10">
-              <Calendar className="h-6 w-6 text-warning" />
+              <DollarSign className="h-6 w-6 text-warning" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Avg Sale Value</p>
@@ -365,47 +360,41 @@ const Sales = () => {
       </Card>
 
       {/* Sales List */}
-      {loading ? (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Loading sales...</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {filteredSales.map((sale) => (
-            <Card key={sale.id} className="p-6 shadow-card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-lg">{sale.product_name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(sale.date).toLocaleString()}
-                  </p>
+      <div className="space-y-4">
+        {filteredSales.map((sale) => (
+          <Card key={sale.id} className="p-6 shadow-card">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-lg">{sale.menu_item_name}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(sale.date).toLocaleString()}
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="text-center">
+                  <p className="text-muted-foreground">Quantity</p>
+                  <p className="font-medium text-lg">{sale.quantity_sold}</p>
                 </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div className="text-center">
-                    <p className="text-muted-foreground">Quantity</p>
-                    <p className="font-medium text-lg">{sale.quantity_sold}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-muted-foreground">Unit Price</p>
-                    <p className="font-medium">Rs{sale.retail_price.toFixed(2)}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-muted-foreground">Revenue</p>
-                    <p className="font-medium text-success">Rs{sale.revenue.toFixed(2)}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-muted-foreground">Profit</p>
-                    <p className="font-medium text-success">Rs{sale.profit.toFixed(2)}</p>
-                  </div>
+                <div className="text-center">
+                  <p className="text-muted-foreground">Unit Price</p>
+                  <p className="font-medium">Rs{sale.retail_price.toFixed(2)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-muted-foreground">Revenue</p>
+                  <p className="font-medium text-success">Rs{sale.revenue.toFixed(2)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-muted-foreground">Profit</p>
+                  <p className="font-medium text-success">Rs{sale.profit.toFixed(2)}</p>
                 </div>
               </div>
-            </Card>
-          ))}
-        </div>
-      )}
+            </div>
+          </Card>
+        ))}
+      </div>
 
-      {filteredSales.length === 0 && !loading && (
+      {filteredSales.length === 0 && (
         <Card className="p-8 text-center shadow-card">
           <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium mb-2">No sales found</h3>
