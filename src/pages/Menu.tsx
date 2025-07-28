@@ -6,20 +6,20 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { getProducts, addProduct, updateProduct, deleteProduct, getProductSalesStats } from '@/lib/database';
-import type { Product } from '@/lib/supabase';
+import { getMenuItems, addMenuItem, updateMenuItem, deleteMenuItem, getMenuItemSalesStats } from '@/lib/database';
+import type { MenuItem } from '@/lib/supabase';
 import { Plus, Edit, Trash2, DollarSign, TrendingUp, Package, ShoppingCart } from 'lucide-react';
 
-interface ProductWithStats extends Product {
+interface MenuItemWithStats extends MenuItem {
   salesStats: {
     totalSales: number;
     totalRevenue: number;
   };
 }
 
-const Products = () => {
-  const [products, setProducts] = useState<ProductWithStats[]>([]);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+const Menu = () => {
+  const [menuItems, setMenuItems] = useState<MenuItemWithStats[]>([]);
+  const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
@@ -37,30 +37,30 @@ const Products = () => {
   });
 
   useEffect(() => {
-    loadProducts();
+    loadMenuItems();
   }, []);
 
-  const loadProducts = async () => {
+  const loadMenuItems = async () => {
     setLoading(true);
     try {
-      const allProducts = await getProducts();
+      const allMenuItems = await getMenuItems();
       
-      // Load sales stats for each product
-      const productsWithStats = await Promise.all(
-        allProducts.map(async (product) => {
-          const salesStats = await getProductSalesStats(product.id);
+      // Load sales stats for each menu item
+      const menuItemsWithStats = await Promise.all(
+        allMenuItems.map(async (menuItem) => {
+          const salesStats = await getMenuItemSalesStats(menuItem.id);
           return {
-            ...product,
+            ...menuItem,
             salesStats
           };
         })
       );
       
-      setProducts(productsWithStats);
+      setMenuItems(menuItemsWithStats);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to load products",
+        description: "Failed to load menu items",
         variant: "destructive",
       });
     } finally {
@@ -80,7 +80,7 @@ const Products = () => {
       return;
     }
 
-    const productData = {
+    const menuItemData = {
       name: formData.name,
       sku: formData.sku,
       retail_price: parseFloat(formData.retailPrice),
@@ -90,58 +90,58 @@ const Products = () => {
     };
 
     try {
-      if (editingProduct) {
-        await updateProduct(editingProduct.id, productData);
+      if (editingMenuItem) {
+        await updateMenuItem(editingMenuItem.id, menuItemData);
         toast({
           title: "Success",
-          description: "Product updated successfully",
+          description: "Menu item updated successfully",
         });
       } else {
-        await addProduct(productData);
+        await addMenuItem(menuItemData);
         toast({
           title: "Success",
-          description: "Product added successfully",
+          description: "Menu item added successfully",
         });
       }
       
       resetForm();
       setIsDialogOpen(false);
-      await loadProducts();
+      await loadMenuItems();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to save product",
+        description: "Failed to save menu item",
         variant: "destructive",
       });
     }
   };
 
-  const handleEdit = (product: Product) => {
-    setEditingProduct(product);
+  const handleEdit = (menuItem: MenuItem) => {
+    setEditingMenuItem(menuItem);
     setFormData({
-      name: product.name,
-      sku: product.sku || '',
-      retailPrice: product.retail_price.toString(),
-      manufacturingCost: product.manufacturing_cost.toString(),
-      currentStock: product.current_stock.toString(),
-      category: product.category || ''
+      name: menuItem.name,
+      sku: menuItem.sku || '',
+      retailPrice: menuItem.retail_price.toString(),
+      manufacturingCost: menuItem.manufacturing_cost.toString(),
+      currentStock: menuItem.current_stock.toString(),
+      category: menuItem.category || ''
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (productId: string) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
+  const handleDelete = async (menuItemId: string) => {
+    if (window.confirm('Are you sure you want to delete this menu item?')) {
       try {
-        await deleteProduct(productId);
+        await deleteMenuItem(menuItemId);
         toast({
           title: "Success",
-          description: "Product deleted successfully",
+          description: "Menu item deleted successfully",
         });
-        await loadProducts();
+        await loadMenuItems();
       } catch (error) {
         toast({
           title: "Error",
-          description: "Failed to delete product",
+          description: "Failed to delete menu item",
           variant: "destructive",
         });
       }
@@ -157,7 +157,7 @@ const Products = () => {
       currentStock: '',
       category: ''
     });
-    setEditingProduct(null);
+    setEditingMenuItem(null);
   };
 
   const getStockStatus = (stock: number) => {
@@ -166,51 +166,51 @@ const Products = () => {
     return { status: 'good', label: 'In Stock', color: 'success' };
   };
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (product.sku && product.sku.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredMenuItems = menuItems.filter(menuItem => {
+    const matchesSearch = menuItem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (menuItem.sku && menuItem.sku.toLowerCase().includes(searchTerm.toLowerCase()));
     
     if (!matchesSearch) return false;
     
-    if (filterCategory !== 'all' && product.category !== filterCategory) return false;
+    if (filterCategory !== 'all' && menuItem.category !== filterCategory) return false;
     
     return true;
   });
 
-  const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
-  const totalProducts = products.length;
-  const totalValue = products.reduce((sum, p) => sum + (p.current_stock * p.retail_price), 0);
-  const totalSales = products.reduce((sum, p) => sum + p.salesStats.totalSales, 0);
-  const totalRevenue = products.reduce((sum, p) => sum + p.salesStats.totalRevenue, 0);
+  const categories = [...new Set(menuItems.map(p => p.category).filter(Boolean))];
+  const totalMenuItems = menuItems.length;
+  const totalValue = menuItems.reduce((sum, p) => sum + (p.current_stock * p.retail_price), 0);
+  const totalSales = menuItems.reduce((sum, p) => sum + p.salesStats.totalSales, 0);
+  const totalRevenue = menuItems.reduce((sum, p) => sum + p.salesStats.totalRevenue, 0);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Products</h1>
+          <h1 className="text-3xl font-bold">Menu</h1>
           <p className="text-muted-foreground">Manage finished goods for sales</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={resetForm} className="shadow-button">
               <Plus className="mr-2 h-4 w-4" />
-              Add Product
+              Add Menu Item
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>
-                {editingProduct ? 'Edit Product' : 'Add New Product'}
+                {editingMenuItem ? 'Edit Menu Item' : 'Add New Menu Item'}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="name">Product Name *</Label>
+                <Label htmlFor="name">Menu Item Name *</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  placeholder="Enter product name"
+                  placeholder="Enter menu item name"
                   required
                 />
               </div>
@@ -275,7 +275,7 @@ const Products = () => {
               
               <div className="flex gap-2">
                 <Button type="submit" className="flex-1">
-                  {editingProduct ? 'Update Product' : 'Add Product'}
+                  {editingMenuItem ? 'Update Menu Item' : 'Add Menu Item'}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancel
@@ -286,7 +286,7 @@ const Products = () => {
         </Dialog>
       </div>
 
-      {/* Product Summary */}
+      {/* Menu Summary */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="p-4 shadow-card">
           <div className="flex items-center gap-3">
@@ -294,8 +294,8 @@ const Products = () => {
               <Package className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Total Products</p>
-              <p className="text-2xl font-bold">{totalProducts}</p>
+              <p className="text-sm text-muted-foreground">Total Menu Items</p>
+              <p className="text-2xl font-bold">{totalMenuItems}</p>
             </div>
           </div>
         </Card>
@@ -341,7 +341,7 @@ const Products = () => {
       <Card className="p-4 shadow-card">
         <div className="flex flex-col sm:flex-row gap-4">
           <Input
-            placeholder="Search products by name or SKU..."
+            placeholder="Search menu items by name or SKU..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
@@ -368,23 +368,23 @@ const Products = () => {
         </div>
       </Card>
 
-      {/* Products List */}
+      {/* Menu Items List */}
       {loading ? (
         <div className="text-center py-8">
-          <p className="text-muted-foreground">Loading products...</p>
+          <p className="text-muted-foreground">Loading menu items...</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredProducts.map((product) => {
-            const stockStatus = getStockStatus(product.current_stock);
-            const profitMargin = ((product.retail_price - product.manufacturing_cost) / product.retail_price * 100);
+          {filteredMenuItems.map((menuItem) => {
+            const stockStatus = getStockStatus(menuItem.current_stock);
+            const profitMargin = ((menuItem.retail_price - menuItem.manufacturing_cost) / menuItem.retail_price * 100);
             
             return (
-              <Card key={product.id} className="p-6 shadow-card">
+              <Card key={menuItem.id} className="p-6 shadow-card">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-lg">{product.name}</h3>
+                      <h3 className="font-semibold text-lg">{menuItem.name}</h3>
                       <Badge variant={stockStatus.color as any}>
                         {stockStatus.label}
                       </Badge>
@@ -396,32 +396,32 @@ const Products = () => {
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground">SKU</p>
-                        <p className="font-medium">{product.sku || 'N/A'}</p>
+                        <p className="font-medium">{menuItem.sku || 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Category</p>
-                        <p className="font-medium">{product.category || 'N/A'}</p>
+                        <p className="font-medium">{menuItem.category || 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Retail Price</p>
-                        <p className="font-medium text-success">Rs{product.retail_price.toFixed(2)}</p>
+                        <p className="font-medium text-success">Rs{menuItem.retail_price.toFixed(2)}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Cost</p>
-                        <p className="font-medium text-destructive">Rs{product.manufacturing_cost.toFixed(2)}</p>
+                        <p className="font-medium text-destructive">Rs{menuItem.manufacturing_cost.toFixed(2)}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Available Stock</p>
                         <p className={`font-medium text-lg ${
-                          product.current_stock === 0 ? 'text-destructive' :
-                          product.current_stock <= 5 ? 'text-warning' : 'text-success'
+                          menuItem.current_stock === 0 ? 'text-destructive' :
+                          menuItem.current_stock <= 5 ? 'text-warning' : 'text-success'
                         }`}>
-                          {product.current_stock}
+                          {menuItem.current_stock}
                         </p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Sales</p>
-                        <p className="font-medium">{product.salesStats.totalSales}</p>
+                        <p className="font-medium">{menuItem.salesStats.totalSales}</p>
                       </div>
                     </div>
                   </div>
@@ -430,14 +430,14 @@ const Products = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleEdit(product)}
+                      onClick={() => handleEdit(menuItem)}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDelete(product.id)}
+                      onClick={() => handleDelete(menuItem.id)}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -449,14 +449,14 @@ const Products = () => {
         </div>
       )}
 
-      {filteredProducts.length === 0 && !loading && (
+      {filteredMenuItems.length === 0 && !loading && (
         <Card className="p-8 text-center shadow-card">
           <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium mb-2">No products found</h3>
+          <h3 className="text-lg font-medium mb-2">No menu items found</h3>
           <p className="text-muted-foreground">
             {searchTerm || filterCategory !== 'all' 
-              ? 'No products match your current filters.' 
-              : 'Add some products to start selling.'}
+              ? 'No menu items match your current filters.' 
+              : 'Add some menu items to start selling.'}
           </p>
         </Card>
       )}
@@ -464,4 +464,4 @@ const Products = () => {
   );
 };
 
-export default Products;
+export default Menu; 

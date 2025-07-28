@@ -1,28 +1,28 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getDashboardStats, getProducts, getSales } from '@/lib/database';
-import type { DashboardStats, Product, Sale } from '@/lib/supabase';
+import { getDashboardStats, getMenuItems, getInventoryItems, getSales } from '@/lib/database';
+import type { DashboardStats, MenuItem, InventoryItem, Sale } from '@/lib/supabase';
 import { TrendingUp, Package, ShoppingCart, DollarSign, AlertTriangle, Warehouse } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
-  const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
+  const [lowStockMenuItems, setLowStockMenuItems] = useState<MenuItem[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [dashboardStats, allSales, allProducts] = await Promise.all([
+        const [dashboardStats, allSales, allMenuItems] = await Promise.all([
           getDashboardStats(),
           getSales(),
-          getProducts()
+          getMenuItems()
         ]);
       
       setStats(dashboardStats);
       setRecentSales(allSales.slice(-5).reverse());
-        setLowStockProducts(allProducts.filter(p => p.current_stock <= 5));
+        setLowStockMenuItems(allMenuItems.filter(p => p.current_stock <= 5));
       } catch (error) {
         console.error('Error loading dashboard data:', error);
       }
@@ -49,15 +49,15 @@ const Dashboard = () => {
       bgColor: 'bg-secondary/10'
     },
     {
-      title: 'Products',
-      value: stats.totalProducts.toString(),
+      title: 'Menu Items',
+      value: stats.totalMenuItems.toString(),
       icon: Package,
       color: 'text-primary',
       bgColor: 'bg-primary/10'
     },
     {
       title: 'Inventory Items',
-      value: stats.totalProducts.toString(),
+      value: stats.totalInventoryItems.toString(),
       icon: Warehouse,
       color: 'text-secondary',
       bgColor: 'bg-secondary/10'
@@ -145,17 +145,17 @@ const Dashboard = () => {
             </Link>
           </div>
           <div className="space-y-3">
-            {lowStockProducts.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">All products are well stocked!</p>
+            {lowStockMenuItems.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">All menu items are well stocked!</p>
             ) : (
-              lowStockProducts.map((product) => (
-                <div key={product.id} className="flex items-center justify-between p-3 bg-warning/10 rounded-lg border border-warning/20">
+              lowStockMenuItems.map((menuItem) => (
+                <div key={menuItem.id} className="flex items-center justify-between p-3 bg-warning/10 rounded-lg border border-warning/20">
                   <div>
-                    <p className="font-medium">{product.name}</p>
-                    <p className="text-sm text-muted-foreground">SKU: {product.sku}</p>
+                    <p className="font-medium">{menuItem.name}</p>
+                    <p className="text-sm text-muted-foreground">SKU: {menuItem.sku}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-warning">{product.current_stock} left</p>
+                    <p className="font-medium text-warning">{menuItem.current_stock} left</p>
                     <p className="text-sm text-muted-foreground">Restock needed</p>
                   </div>
                 </div>
@@ -169,10 +169,10 @@ const Dashboard = () => {
       <Card className="p-6 shadow-card">
         <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Link to="/products">
+          <Link to="/menu">
             <Button className="w-full justify-start" variant="outline">
               <Package className="mr-2 h-4 w-4" />
-              Add Product
+              Add Menu Item
             </Button>
           </Link>
           <Link to="/sales">
@@ -187,7 +187,7 @@ const Dashboard = () => {
               Update Stock
             </Button>
           </Link>
-          <Link to="/products">
+          <Link to="/menu">
             <Button className="w-full justify-start" variant="outline">
               <DollarSign className="mr-2 h-4 w-4" />
               Update Prices

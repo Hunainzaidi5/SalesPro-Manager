@@ -3,21 +3,22 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { getProducts, getSales, addSale } from '@/lib/database';
-import type { Product, Sale } from '@/lib/supabase';
-import { Plus, ShoppingCart, TrendingUp, DollarSign, Calendar } from 'lucide-react';
+import { getSales, addSale, getMenuItems, updateMenuItem } from '@/lib/database';
+import type { Sale, MenuItem } from '@/lib/supabase';
+import { Plus, ShoppingCart, DollarSign, TrendingUp, Calendar } from 'lucide-react';
 
 const Sales = () => {
-  const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedProductId, setSelectedProductId] = useState('');
+  const [selectedMenuItemId, setSelectedMenuItemId] = useState('');
   const [quantity, setQuantity] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -25,74 +26,98 @@ const Sales = () => {
   }, []);
 
   const loadData = async () => {
+    setLoading(true);
     try {
-      const [productsData, salesData] = await Promise.all([
-        getProducts(),
-        getSales()
+      const [allSales, allMenuItems] = await Promise.all([
+        getSales(),
+        getMenuItems()
       ]);
-      setProducts(productsData);
-      setSales(salesData);
+      
+      setSales(allSales);
+      setMenuItems(allMenuItems);
     } catch (error) {
-      console.error('Error loading data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSaleSubmit = (e: React.FormEvent) => {
+  const handleSaleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedProductId || !quantity) {
+    if (!selectedMenuItemId || !quantity) {
       toast({
         title: "Validation Error",
-        description: "Please select a product and enter quantity",
+        description: "Please select a menu item and enter quantity",
         variant: "destructive",
       });
       return;
     }
 
-    const product = products.find(p => p.id === selectedProductId);
-    if (!product) return;
+    const selectedMenuItem = menuItems.find(item => item.id === selectedMenuItemId);
+    if (!selectedMenuItem) {
+      toast({
+        title: "Error",
+        description: "Selected menu item not found",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const quantityNum = parseInt(quantity);
-    if (quantityNum <= 0) {
+    if (isNaN(quantityNum) || quantityNum <= 0) {
       toast({
         title: "Validation Error",
-        description: "Quantity must be greater than 0",
+        description: "Please enter a valid quantity",
         variant: "destructive",
       });
       return;
     }
 
-    if (quantityNum > product.current_stock) {
+    if (quantityNum > selectedMenuItem.current_stock) {
       toast({
-        title: "Insufficient Stock",
-        description: `Only ${product.current_stock} items available`,
+        title: "Validation Error",
+        description: "Insufficient stock available",
         variant: "destructive",
       });
       return;
     }
 
-    const sale = {
-      product_id: selectedProductId,
-      product_name: product.name,
+    const revenue = selectedMenuItem.retail_price * quantityNum;
+    const profit = (selectedMenuItem.retail_price - selectedMenuItem.manufacturing_cost) * quantityNum;
+
+    const saleData = {
+      menu_item_id: selectedMenuItemId,
+      product_name: selectedMenuItem.name,
       quantity_sold: quantityNum,
       date: new Date().toISOString(),
-      retail_price: product.retail_price,
-      manufacturing_cost: product.manufacturing_cost,
-      revenue: product.retail_price * quantityNum,
-      profit: (product.retail_price - product.manufacturing_cost) * quantityNum
+      retail_price: selectedMenuItem.retail_price,
+      manufacturing_cost: selectedMenuItem.manufacturing_cost,
+      revenue,
+      profit
     };
 
-    const result = addSale(sale);
-    if (result) {
+    try {
+      await addSale(saleData);
+      
+      // Update menu item stock
+      const newStock = selectedMenuItem.current_stock - quantityNum;
+      await updateMenuItem(selectedMenuItemId, { current_stock: newStock });
+      
       toast({
         title: "Success",
         description: "Sale recorded successfully",
       });
-      setSelectedProductId('');
+
+      setSelectedMenuItemId('');
       setQuantity('');
       setIsDialogOpen(false);
-      loadData();
-    } else {
+      await loadData();
+    } catch (error) {
       toast({
         title: "Error",
         description: "Failed to record sale",
@@ -143,7 +168,7 @@ const Sales = () => {
       : 0
   };
 
-  const availableProducts = products.filter(p => p.current_stock > 0);
+  const availableMenuItems = menuItems.filter(p => p.current_stock > 0);
 
   return (
     <div className="space-y-6">
@@ -162,44 +187,44 @@ const Sales = () => {
             </DialogHeader>
             <form onSubmit={handleSaleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="product">Product</Label>
-                <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                <Label htmlFor="menuItem">Menu Item</Label>
+                <Select value={selectedMenuItemId} onValueChange={setSelectedMenuItemId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a product" />
+                    <SelectValue placeholder="Select a menu item" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableProducts.map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.name} (Stock: {product.current_stock}) - Rs{product.retail_price}
+                    {availableMenuItems.map((menuItem) => (
+                      <SelectItem key={menuItem.id} value={menuItem.id}>
+                        {menuItem.name} (Stock: {menuItem.current_stock}) - Rs{menuItem.retail_price}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               
-              {selectedProductId && (
+              {selectedMenuItemId && (
                 <div className="p-3 bg-muted/50 rounded-lg text-sm">
                   {(() => {
-                    const product = products.find(p => p.id === selectedProductId);
-                    if (!product) return null;
+                    const menuItem = menuItems.find(p => p.id === selectedMenuItemId);
+                    if (!menuItem) return null;
                     
                     const quantityNum = parseInt(quantity) || 0;
-                    const revenue = product.retail_price * quantityNum;
-                    const profit = (product.retail_price - product.manufacturing_cost) * quantityNum;
+                    const revenue = menuItem.retail_price * quantityNum;
+                    const profit = (menuItem.retail_price - menuItem.manufacturing_cost) * quantityNum;
                     
                     return (
                       <div className="space-y-1">
                         <div className="flex justify-between">
                           <span>Retail Price:</span>
-                          <span>Rs{product.retail_price.toFixed(2)}</span>
+                          <span>Rs{menuItem.retail_price.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Manufacturing Cost:</span>
-                          <span>Rs{product.manufacturing_cost.toFixed(2)}</span>
+                          <span>Rs{menuItem.manufacturing_cost.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Available Stock:</span>
-                          <span>{product.current_stock}</span>
+                          <span>{menuItem.current_stock}</span>
                         </div>
                         {quantityNum > 0 && (
                           <>
@@ -301,7 +326,7 @@ const Sales = () => {
       <Card className="p-4 shadow-card">
         <div className="flex flex-col sm:flex-row gap-4">
           <Input
-            placeholder="Search sales by product name..."
+            placeholder="Search sales by menu item name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
@@ -340,41 +365,47 @@ const Sales = () => {
       </Card>
 
       {/* Sales List */}
-      <div className="space-y-4">
-        {filteredSales.map((sale) => (
-          <Card key={sale.id} className="p-6 shadow-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-lg">{sale.product_name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(sale.date).toLocaleString()}
-                </p>
+      {loading ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Loading sales...</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredSales.map((sale) => (
+            <Card key={sale.id} className="p-6 shadow-card">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-lg">{sale.product_name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(sale.date).toLocaleString()}
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="text-center">
+                    <p className="text-muted-foreground">Quantity</p>
+                    <p className="font-medium text-lg">{sale.quantity_sold}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-muted-foreground">Unit Price</p>
+                    <p className="font-medium">Rs{sale.retail_price.toFixed(2)}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-muted-foreground">Revenue</p>
+                    <p className="font-medium text-success">Rs{sale.revenue.toFixed(2)}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-muted-foreground">Profit</p>
+                    <p className="font-medium text-success">Rs{sale.profit.toFixed(2)}</p>
+                  </div>
+                </div>
               </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div className="text-center">
-                  <p className="text-muted-foreground">Quantity</p>
-                  <p className="font-medium text-lg">{sale.quantity_sold}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-muted-foreground">Unit Price</p>
-                  <p className="font-medium">Rs{sale.retail_price.toFixed(2)}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-muted-foreground">Revenue</p>
-                  <p className="font-medium text-success">Rs{sale.revenue.toFixed(2)}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-muted-foreground">Profit</p>
-                  <p className="font-medium text-success">Rs{sale.profit.toFixed(2)}</p>
-                </div>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      {filteredSales.length === 0 && (
+      {filteredSales.length === 0 && !loading && (
         <Card className="p-8 text-center shadow-card">
           <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium mb-2">No sales found</h3>

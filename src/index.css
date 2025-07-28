@@ -59,6 +59,8 @@
     --sidebar-accent-foreground: 0 0% 0%;
     --sidebar-border: 0 0% 80%;
     --sidebar-ring: 0 0% 0%;
+    --sidebar-bg: #707070;
+    --main-bg: #99C24D;
   }
 
   .dark {

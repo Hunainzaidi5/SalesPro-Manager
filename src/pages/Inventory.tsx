@@ -6,13 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { getProducts, updateProduct, addProduct, deleteProduct } from '@/lib/database';
-import type { Product } from '@/lib/supabase';
+import { getInventoryItems, updateInventoryItem, addInventoryItem, deleteInventoryItem } from '@/lib/database';
+import type { InventoryItem } from '@/lib/supabase';
 import { Package, AlertTriangle, TrendingUp, Plus, Minus, Edit, Trash2, Warehouse } from 'lucide-react';
 
 const Inventory = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [selectedInventoryItem, setSelectedInventoryItem] = useState<InventoryItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -28,21 +28,21 @@ const Inventory = () => {
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
-    retailPrice: '',
-    manufacturingCost: '',
+    unitPrice: '',
+    costPrice: '',
     currentStock: '',
     category: ''
   });
 
   useEffect(() => {
-    loadProducts();
+    loadInventoryItems();
   }, []);
 
-  const loadProducts = async () => {
+  const loadInventoryItems = async () => {
     setLoading(true);
     try {
-      const allProducts = await getProducts();
-      setProducts(allProducts);
+      const allInventoryItems = await getInventoryItems();
+      setInventoryItems(allInventoryItems);
     } catch (error) {
       toast({
         title: "Error",
@@ -63,7 +63,7 @@ const Inventory = () => {
   const handleStockUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedProduct || !stockChange) {
+    if (!selectedInventoryItem || !stockChange) {
       toast({
         title: "Validation Error",
         description: "Please enter a valid quantity",
@@ -83,11 +83,11 @@ const Inventory = () => {
     }
 
     const newStock = operation === 'add' 
-      ? selectedProduct.current_stock + changeAmount
-      : Math.max(0, selectedProduct.current_stock - changeAmount);
+      ? selectedInventoryItem.current_stock + changeAmount
+      : Math.max(0, selectedInventoryItem.current_stock - changeAmount);
 
     try {
-      await updateProduct(selectedProduct.id, { current_stock: newStock });
+      await updateInventoryItem(selectedInventoryItem.id, { current_stock: newStock });
       
       toast({
         title: "Success",
@@ -96,7 +96,7 @@ const Inventory = () => {
 
       setStockChange('');
       setIsDialogOpen(false);
-      await loadProducts();
+      await loadInventoryItems();
     } catch (error) {
       toast({
         title: "Error",
@@ -109,7 +109,7 @@ const Inventory = () => {
   const handleAddInventoryItem = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.retailPrice || !formData.manufacturingCost) {
+    if (!formData.name || !formData.unitPrice || !formData.costPrice) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -118,24 +118,24 @@ const Inventory = () => {
       return;
     }
 
-    const productData = {
+    const inventoryItemData = {
       name: formData.name,
       sku: formData.sku,
-      retail_price: parseFloat(formData.retailPrice),
-      manufacturing_cost: parseFloat(formData.manufacturingCost),
+      unit_price: parseFloat(formData.unitPrice),
+      cost_price: parseFloat(formData.costPrice),
       current_stock: parseInt(formData.currentStock) || 0,
       category: formData.category
     };
 
     try {
-      await addProduct(productData);
+      await addInventoryItem(inventoryItemData);
       toast({
         title: "Success",
         description: "Inventory item added successfully",
       });
       resetForm();
       setIsAddDialogOpen(false);
-      await loadProducts();
+      await loadInventoryItems();
     } catch (error) {
       toast({
         title: "Error",
@@ -148,7 +148,7 @@ const Inventory = () => {
   const handleEditInventoryItem = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedProduct || !formData.name || !formData.retailPrice || !formData.manufacturingCost) {
+    if (!selectedInventoryItem || !formData.name || !formData.unitPrice || !formData.costPrice) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -157,24 +157,24 @@ const Inventory = () => {
       return;
     }
 
-    const productData = {
+    const inventoryItemData = {
       name: formData.name,
       sku: formData.sku,
-      retail_price: parseFloat(formData.retailPrice),
-      manufacturing_cost: parseFloat(formData.manufacturingCost),
+      unit_price: parseFloat(formData.unitPrice),
+      cost_price: parseFloat(formData.costPrice),
       current_stock: parseInt(formData.currentStock) || 0,
       category: formData.category
     };
 
     try {
-      await updateProduct(selectedProduct.id, productData);
+      await updateInventoryItem(selectedInventoryItem.id, inventoryItemData);
       toast({
         title: "Success",
         description: "Inventory item updated successfully",
       });
       resetForm();
       setIsEditDialogOpen(false);
-      await loadProducts();
+      await loadInventoryItems();
     } catch (error) {
       toast({
         title: "Error",
@@ -184,15 +184,15 @@ const Inventory = () => {
     }
   };
 
-  const handleDeleteInventoryItem = async (productId: string) => {
+  const handleDeleteInventoryItem = async (inventoryItemId: string) => {
     if (window.confirm('Are you sure you want to delete this inventory item?')) {
       try {
-        await deleteProduct(productId);
+        await deleteInventoryItem(inventoryItemId);
         toast({
           title: "Success",
           description: "Inventory item deleted successfully",
         });
-        await loadProducts();
+        await loadInventoryItems();
       } catch (error) {
         toast({
           title: "Error",
@@ -203,22 +203,22 @@ const Inventory = () => {
     }
   };
 
-  const openStockDialog = (product: Product, op: 'add' | 'remove') => {
-    setSelectedProduct(product);
+  const openStockDialog = (inventoryItem: InventoryItem, op: 'add' | 'remove') => {
+    setSelectedInventoryItem(inventoryItem);
     setOperation(op);
     setStockChange('');
     setIsDialogOpen(true);
   };
 
-  const openEditDialog = (product: Product) => {
-    setSelectedProduct(product);
+  const openEditDialog = (inventoryItem: InventoryItem) => {
+    setSelectedInventoryItem(inventoryItem);
     setFormData({
-      name: product.name,
-      sku: product.sku || '',
-      retailPrice: product.retail_price.toString(),
-      manufacturingCost: product.manufacturing_cost.toString(),
-      currentStock: product.current_stock.toString(),
-      category: product.category || ''
+      name: inventoryItem.name,
+      sku: inventoryItem.sku || '',
+      unitPrice: inventoryItem.unit_price.toString(),
+      costPrice: inventoryItem.cost_price.toString(),
+      currentStock: inventoryItem.current_stock.toString(),
+      category: inventoryItem.category || ''
     });
     setIsEditDialogOpen(true);
   };
@@ -227,36 +227,36 @@ const Inventory = () => {
     setFormData({
       name: '',
       sku: '',
-      retailPrice: '',
-      manufacturingCost: '',
+      unitPrice: '',
+      costPrice: '',
       currentStock: '',
       category: ''
     });
-    setSelectedProduct(null);
+    setSelectedInventoryItem(null);
   };
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (product.sku && product.sku.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredInventoryItems = inventoryItems.filter(inventoryItem => {
+    const matchesSearch = inventoryItem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (inventoryItem.sku && inventoryItem.sku.toLowerCase().includes(searchTerm.toLowerCase()));
     
     if (!matchesSearch) return false;
     
-    const stockStatus = getStockStatus(product.current_stock);
+    const stockStatus = getStockStatus(inventoryItem.current_stock);
     if (filterStatus === 'all') return true;
     if (filterStatus === 'low') return stockStatus.status === 'low';
     if (filterStatus === 'out') return stockStatus.status === 'out';
     
-    if (filterCategory !== 'all' && product.category !== filterCategory) return false;
+    if (filterCategory !== 'all' && inventoryItem.category !== filterCategory) return false;
     
     return true;
   });
 
-  const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
+  const categories = [...new Set(inventoryItems.map(p => p.category).filter(Boolean))];
   const stockSummary = {
-    total: products.length,
-    lowStock: products.filter(p => p.current_stock <= 5 && p.current_stock > 0).length,
-    outOfStock: products.filter(p => p.current_stock === 0).length,
-    totalValue: products.reduce((sum, p) => sum + (p.current_stock * p.manufacturing_cost), 0)
+    total: inventoryItems.length,
+    lowStock: inventoryItems.filter(p => p.current_stock <= 5 && p.current_stock > 0).length,
+    outOfStock: inventoryItems.filter(p => p.current_stock === 0).length,
+    totalValue: inventoryItems.reduce((sum, p) => sum + (p.current_stock * p.cost_price), 0)
   };
 
   return (
@@ -311,25 +311,25 @@ const Inventory = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="retailPrice">Unit Price *</Label>
+                  <Label htmlFor="unitPrice">Unit Price *</Label>
                   <Input
-                    id="retailPrice"
+                    id="unitPrice"
                     type="number"
                     step="0.01"
-                    value={formData.retailPrice}
-                    onChange={(e) => setFormData({...formData, retailPrice: e.target.value})}
+                    value={formData.unitPrice}
+                    onChange={(e) => setFormData({...formData, unitPrice: e.target.value})}
                     placeholder="0.00"
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="manufacturingCost">Cost Price *</Label>
+                  <Label htmlFor="costPrice">Cost Price *</Label>
                   <Input
-                    id="manufacturingCost"
+                    id="costPrice"
                     type="number"
                     step="0.01"
-                    value={formData.manufacturingCost}
-                    onChange={(e) => setFormData({...formData, manufacturingCost: e.target.value})}
+                    value={formData.costPrice}
+                    onChange={(e) => setFormData({...formData, costPrice: e.target.value})}
                     placeholder="0.00"
                     required
                   />
@@ -472,15 +472,15 @@ const Inventory = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredProducts.map((product) => {
-            const stockStatus = getStockStatus(product.current_stock);
+          {filteredInventoryItems.map((inventoryItem) => {
+            const stockStatus = getStockStatus(inventoryItem.current_stock);
             
             return (
-              <Card key={product.id} className="p-6 shadow-card">
+              <Card key={inventoryItem.id} className="p-6 shadow-card">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-lg">{product.name}</h3>
+                      <h3 className="font-semibold text-lg">{inventoryItem.name}</h3>
                       <Badge variant={stockStatus.color as any}>
                         {stockStatus.label}
                       </Badge>
@@ -489,29 +489,29 @@ const Inventory = () => {
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground">SKU</p>
-                        <p className="font-medium">{product.sku || 'N/A'}</p>
+                        <p className="font-medium">{inventoryItem.sku || 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Category</p>
-                        <p className="font-medium">{product.category || 'N/A'}</p>
+                        <p className="font-medium">{inventoryItem.category || 'N/A'}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Current Stock</p>
                         <p className={`font-medium text-lg ${
-                          product.current_stock === 0 ? 'text-destructive' :
-                          product.current_stock <= 5 ? 'text-warning' : 'text-success'
+                          inventoryItem.current_stock === 0 ? 'text-destructive' :
+                          inventoryItem.current_stock <= 5 ? 'text-warning' : 'text-success'
                         }`}>
-                          {product.current_stock}
+                          {inventoryItem.current_stock}
                         </p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Unit Cost</p>
-                        <p className="font-medium">Rs{product.manufacturing_cost.toFixed(2)}</p>
+                        <p className="font-medium">Rs{inventoryItem.cost_price.toFixed(2)}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Stock Value</p>
                         <p className="font-medium">
-                          Rs{(product.current_stock * product.manufacturing_cost).toFixed(2)}
+                          Rs{(inventoryItem.current_stock * inventoryItem.cost_price).toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -522,14 +522,14 @@ const Inventory = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => openEditDialog(product)}
+                        onClick={() => openEditDialog(inventoryItem)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDeleteInventoryItem(product.id)}
+                        onClick={() => handleDeleteInventoryItem(inventoryItem.id)}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -538,14 +538,14 @@ const Inventory = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => openStockDialog(product, 'add')}
+                        onClick={() => openStockDialog(inventoryItem, 'add')}
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => openStockDialog(product, 'remove')}
+                        onClick={() => openStockDialog(inventoryItem, 'remove')}
                       >
                         <Minus className="h-4 w-4" />
                       </Button>
@@ -558,7 +558,7 @@ const Inventory = () => {
         </div>
       )}
 
-      {filteredProducts.length === 0 && !loading && (
+      {filteredInventoryItems.length === 0 && !loading && (
         <Card className="p-8 text-center shadow-card">
           <Warehouse className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium mb-2">No inventory items found</h3>
@@ -643,25 +643,25 @@ const Inventory = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="editRetailPrice">Unit Price *</Label>
+                <Label htmlFor="editUnitPrice">Unit Price *</Label>
                 <Input
-                  id="editRetailPrice"
+                  id="editUnitPrice"
                   type="number"
                   step="0.01"
-                  value={formData.retailPrice}
-                  onChange={(e) => setFormData({...formData, retailPrice: e.target.value})}
+                  value={formData.unitPrice}
+                  onChange={(e) => setFormData({...formData, unitPrice: e.target.value})}
                   placeholder="0.00"
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="editManufacturingCost">Cost Price *</Label>
+                <Label htmlFor="editCostPrice">Cost Price *</Label>
                 <Input
-                  id="editManufacturingCost"
+                  id="editCostPrice"
                   type="number"
                   step="0.01"
-                  value={formData.manufacturingCost}
-                  onChange={(e) => setFormData({...formData, manufacturingCost: e.target.value})}
+                  value={formData.costPrice}
+                  onChange={(e) => setFormData({...formData, costPrice: e.target.value})}
                   placeholder="0.00"
                   required
                 />

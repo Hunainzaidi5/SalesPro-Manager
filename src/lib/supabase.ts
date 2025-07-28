@@ -6,7 +6,7 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Database types
-export interface Product {
+export interface MenuItem {
   id: string
   name: string
   sku: string
@@ -18,9 +18,21 @@ export interface Product {
   updated_at: string
 }
 
+export interface InventoryItem {
+  id: string
+  name: string
+  sku: string
+  unit_price: number
+  cost_price: number
+  current_stock: number
+  category?: string
+  created_at: string
+  updated_at: string
+}
+
 export interface Sale {
   id: string
-  product_id: string
+  menu_item_id: string
   product_name: string
   quantity_sold: number
   date: string
@@ -34,6 +46,7 @@ export interface Sale {
 export interface DashboardStats {
   totalRevenue: number
   totalProfit: number
-  totalProducts: number
+  totalMenuItems: number
+  totalInventoryItems: number
   totalSales: number
 } 

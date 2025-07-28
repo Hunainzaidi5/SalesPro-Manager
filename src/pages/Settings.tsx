@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { getProducts, getSales } from '@/lib/database';
+import { getMenuItems, getInventoryItems, getSales } from '@/lib/database';
 import { Settings as SettingsIcon, Download, Upload, Trash2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -11,27 +11,46 @@ const Settings = () => {
   const handleExportData = async () => {
     try {
       // Fetch data from database
-      const products = await getProducts();
-      const sales = await getSales();
+      const [menuItems, inventoryItems, sales] = await Promise.all([
+        getMenuItems(),
+        getInventoryItems(),
+        getSales()
+      ]);
       
       // Create workbook with multiple sheets
       const workbook = XLSX.utils.book_new();
       
-      // Products sheet
-      const productsData = products.map(product => ({
-        'Product Name': product.name,
-        'SKU': product.sku || 'N/A',
-        'Category': product.category || 'N/A',
-        'Retail Price': product.retail_price,
-        'Manufacturing Cost': product.manufacturing_cost,
-        'Current Stock': product.current_stock,
-        'Stock Value': product.current_stock * product.manufacturing_cost,
-        'Created Date': new Date(product.created_at).toLocaleDateString(),
-        'Last Updated': new Date(product.updated_at).toLocaleDateString()
+      // Menu Items sheet
+      const menuItemsData = menuItems.map(menuItem => ({
+        'Menu Item Name': menuItem.name,
+        'SKU': menuItem.sku || 'N/A',
+        'Category': menuItem.category || 'N/A',
+        'Retail Price': menuItem.retail_price,
+        'Manufacturing Cost': menuItem.manufacturing_cost,
+        'Current Stock': menuItem.current_stock,
+        'Stock Value': menuItem.current_stock * menuItem.retail_price,
+        'Created Date': new Date(menuItem.created_at).toLocaleDateString(),
+        'Last Updated': new Date(menuItem.updated_at).toLocaleDateString()
       }));
       
-      const productsSheet = XLSX.utils.json_to_sheet(productsData);
-      XLSX.utils.book_append_sheet(workbook, productsSheet, 'Products');
+      const menuItemsSheet = XLSX.utils.json_to_sheet(menuItemsData);
+      XLSX.utils.book_append_sheet(workbook, menuItemsSheet, 'Menu Items');
+      
+      // Inventory Items sheet
+      const inventoryItemsData = inventoryItems.map(inventoryItem => ({
+        'Inventory Item Name': inventoryItem.name,
+        'SKU': inventoryItem.sku || 'N/A',
+        'Category': inventoryItem.category || 'N/A',
+        'Unit Price': inventoryItem.unit_price,
+        'Cost Price': inventoryItem.cost_price,
+        'Current Stock': inventoryItem.current_stock,
+        'Stock Value': inventoryItem.current_stock * inventoryItem.cost_price,
+        'Created Date': new Date(inventoryItem.created_at).toLocaleDateString(),
+        'Last Updated': new Date(inventoryItem.updated_at).toLocaleDateString()
+      }));
+      
+      const inventoryItemsSheet = XLSX.utils.json_to_sheet(inventoryItemsData);
+      XLSX.utils.book_append_sheet(workbook, inventoryItemsSheet, 'Inventory Items');
       
       // Sales sheet
       const salesData = sales.map(sale => ({
@@ -50,16 +69,20 @@ const Settings = () => {
       // Summary sheet
       const totalRevenue = sales.reduce((sum, sale) => sum + sale.revenue, 0);
       const totalProfit = sales.reduce((sum, sale) => sum + sale.profit, 0);
-      const totalProducts = products.length;
+      const totalMenuItems = menuItems.length;
+      const totalInventoryItems = inventoryItems.length;
       const totalSales = sales.length;
-      const inventoryValue = products.reduce((sum, product) => sum + (product.current_stock * product.manufacturing_cost), 0);
+      const menuInventoryValue = menuItems.reduce((sum, menuItem) => sum + (menuItem.current_stock * menuItem.retail_price), 0);
+      const inventoryValue = inventoryItems.reduce((sum, inventoryItem) => sum + (inventoryItem.current_stock * inventoryItem.cost_price), 0);
       
       const summaryData = [
-        { 'Metric': 'Total Products', 'Value': totalProducts },
+        { 'Metric': 'Total Menu Items', 'Value': totalMenuItems },
+        { 'Metric': 'Total Inventory Items', 'Value': totalInventoryItems },
         { 'Metric': 'Total Sales', 'Value': totalSales },
         { 'Metric': 'Total Revenue', 'Value': totalRevenue },
         { 'Metric': 'Total Profit', 'Value': totalProfit },
-        { 'Metric': 'Inventory Value', 'Value': inventoryValue },
+        { 'Metric': 'Menu Inventory Value', 'Value': menuInventoryValue },
+        { 'Metric': 'Raw Materials Value', 'Value': inventoryValue },
         { 'Metric': 'Export Date', 'Value': new Date().toLocaleDateString() }
       ];
       
