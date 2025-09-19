@@ -110,14 +110,9 @@ const Sales = () => {
         const newSale = await addSale(saleData);
         setSales([...sales, newSale]);
         
-        // Update vegetable stock
-        const updatedVegetables = vegetables.map(veg => {
-          if (veg.id === selectedVegetableId) {
-            return { ...veg, current_stock: (veg.current_stock || 0) - quantityNum };
-          }
-          return veg;
-        });
-        setVegetables(updatedVegetables);
+        // Refetch vegetables to reflect DB trigger-updated stock
+        const fresh = await getVegetables();
+        setVegetables(fresh);
       }
       
       // Reset form
