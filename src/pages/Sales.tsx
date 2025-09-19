@@ -1,416 +1,922 @@
-import { useEffect, useState } from 'react';
-import { Card } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { getSales, addSale, getMenuItems } from '@/lib/database';
-import type { Sale, MenuItem } from '@/lib/supabase';
-import { Plus, ShoppingCart, TrendingUp, DollarSign } from 'lucide-react';
+import { getSales, getVegetables, addSale, updateSale, deleteSale, addVegetable, deleteVegetable } from '@/lib/database';
+import type { Sale, Vegetable } from '@/lib/supabase';
+import { Plus, ShoppingCart, TrendingUp, Edit, Trash2, Package, MoreVertical } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const Sales = () => {
   const [sales, setSales] = useState<Sale[]>([]);
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [vegetables, setVegetables] = useState<Vegetable[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedMenuItemId, setSelectedMenuItemId] = useState('');
+  const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
+  const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
+  const [isAddVegetableDialogOpen, setIsAddVegetableDialogOpen] = useState(false);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [selectedVegetableId, setSelectedVegetableId] = useState('');
   const [quantity, setQuantity] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
 
+  // Form states
+  const [itemForm, setItemForm] = useState({
+    selectedItemId: '',
+    purchaseRate: '',
+    salesRate: ''
+  });
+
+  const [stockForm, setStockForm] = useState({
+    selectedItemId: '',
+    quantity: ''
+  });
+
+  const [newVegetable, setNewVegetable] = useState({
+    name: '',
+    retail_price: '',
+    manufacturing_cost: '',
+    current_stock: '',
+    unit: 'kg',
+    category: 'Vegetables'
+  });
+
+  // Fetch data on component mount
   useEffect(() => {
-    loadData();
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [salesData, vegetablesData] = await Promise.all([
+          getSales(),
+          getVegetables()
+        ]);
+        setSales(salesData);
+        setVegetables(vegetablesData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedVegetableId || !quantity) {
+      alert('Please select a vegetable and enter a quantity');
+      return;
+    }
+    
+    const selectedVegetable = vegetables.find(v => v.id === selectedVegetableId);
+    if (!selectedVegetable) {
+      alert('Selected vegetable not found');
+      return;
+    }
+    
+    const quantityNum = parseFloat(quantity);
+    if (isNaN(quantityNum) || quantityNum <= 0) {
+      alert('Please enter a valid quantity');
+      return;
+    }
+    
+    if (quantityNum > (selectedVegetable.current_stock || 0)) {
+      alert(`Only ${selectedVegetable.current_stock} items available in stock`);
+      return;
+    }
+    
     try {
-      const [allSales, allMenuItems] = await Promise.all([
-        getSales(),
-        getMenuItems()
-      ]);
+      const saleData = {
+        vegetable_id: selectedVegetableId,
+        vegetable_name: selectedVegetable.name,
+        quantity_sold: quantityNum,
+        retail_price: selectedVegetable.retail_price,
+        manufacturing_cost: selectedVegetable.manufacturing_cost,
+        revenue: selectedVegetable.retail_price * quantityNum,
+        profit: (selectedVegetable.retail_price - selectedVegetable.manufacturing_cost) * quantityNum,
+        date: new Date().toISOString()
+      };
       
-      setSales(allSales);
-      setMenuItems(allMenuItems);
+      if (editingSale) {
+        await updateSale(editingSale.id, saleData);
+        setSales(sales.map(sale => sale.id === editingSale.id ? { ...sale, ...saleData } : sale));
+      } else {
+        const newSale = await addSale(saleData);
+        setSales([...sales, newSale]);
+        
+        // Update vegetable stock
+        const updatedVegetables = vegetables.map(veg => {
+          if (veg.id === selectedVegetableId) {
+            return { ...veg, current_stock: (veg.current_stock || 0) - quantityNum };
+          }
+          return veg;
+        });
+        setVegetables(updatedVegetables);
+      }
+      
+      // Reset form
+      setSelectedVegetableId('');
+      setQuantity('');
+      setEditingSale(null);
+      setIsDialogOpen(false);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load data",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+      console.error('Error saving sale:', error);
+      alert('Failed to save sale');
     }
   };
 
-  const handleSaleSubmit = async (e: React.FormEvent) => {
+  const handleEditSale = (sale: Sale) => {
+    setEditingSale(sale);
+    setSelectedVegetableId(sale.vegetable_id);
+    setQuantity(sale.quantity_sold.toString());
+    setIsDialogOpen(true);
+  };
+
+  const handleDeleteSale = async (saleId: string) => {
+    if (window.confirm('Are you sure you want to delete this sale?')) {
+      try {
+        await deleteSale(saleId);
+        setSales(sales.filter(sale => sale.id !== saleId));
+      } catch (error) {
+        console.error('Error deleting sale:', error);
+        alert('Failed to delete sale');
+      }
+    }
+  };
+
+  const handleDeleteVegetable = async (vegetableId: string) => {
+    if (!window.confirm('Are you sure you want to delete this vegetable? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      await deleteVegetable(vegetableId);
+      setVegetables(vegetables.filter(veg => veg.id !== vegetableId));
+      // Also remove any sales associated with this vegetable
+      setSales(sales.filter(sale => sale.vegetable_id !== vegetableId));
+      alert('Vegetable deleted successfully');
+    } catch (error) {
+      console.error('Error deleting vegetable:', error);
+      alert('Failed to delete vegetable. Please try again.');
+    }
+  };
+
+  const handleItemFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedMenuItemId || !quantity) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a menu item and enter quantity",
-        variant: "destructive",
-      });
+    if (!itemForm.selectedItemId || !itemForm.purchaseRate || !itemForm.salesRate) {
+      alert('Please fill in all fields');
       return;
     }
 
-    const selectedMenuItem = menuItems.find(item => item.id === selectedMenuItemId);
-    if (!selectedMenuItem) {
-      toast({
-        title: "Error",
-        description: "Selected menu item not found",
-        variant: "destructive",
-      });
+    const purchaseRate = parseFloat(itemForm.purchaseRate);
+    const salesRate = parseFloat(itemForm.salesRate);
+
+    if (isNaN(purchaseRate) || isNaN(salesRate) || purchaseRate < 0 || salesRate < 0) {
+      alert('Please enter valid rates');
       return;
     }
-
-    const quantityNum = parseInt(quantity);
-    if (isNaN(quantityNum) || quantityNum <= 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter a valid quantity",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (selectedMenuItem.current_stock < quantityNum) {
-      toast({
-        title: "Validation Error",
-        description: "Insufficient stock available",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const revenue = selectedMenuItem.retail_price * quantityNum;
-    const profit = (selectedMenuItem.retail_price - selectedMenuItem.manufacturing_cost) * quantityNum;
-
-    const saleData = {
-      menu_item_id: selectedMenuItemId,
-      menu_item_name: selectedMenuItem.name,
-      quantity_sold: quantityNum,
-      date: new Date().toISOString(),
-      retail_price: selectedMenuItem.retail_price,
-      manufacturing_cost: selectedMenuItem.manufacturing_cost,
-      revenue,
-      profit
-    };
 
     try {
-      await addSale(saleData);
-      toast({
-        title: "Success",
-        description: "Sale recorded successfully",
+      // Update vegetable prices
+      const updatedVegetables = vegetables.map(item => {
+        if (item.id === itemForm.selectedItemId) {
+          return { ...item, retail_price: salesRate, manufacturing_cost: purchaseRate };
+        }
+        return item;
       });
+      setVegetables(updatedVegetables);
       
-      setSelectedMenuItemId('');
-      setQuantity('');
-      setIsDialogOpen(false);
-      await loadData();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to record sale",
-        variant: "destructive",
+      alert('Item prices updated successfully');
+      
+      setItemForm({
+        selectedItemId: '',
+        purchaseRate: '',
+        salesRate: ''
       });
+      setIsItemDialogOpen(false);
+    } catch (error) {
+      console.error('Error updating item prices:', error);
+      alert('Failed to update item prices');
     }
+  };
+
+  const handleAddVegetable = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newVegetable.name || !newVegetable.retail_price || !newVegetable.manufacturing_cost) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const retailPrice = parseFloat(newVegetable.retail_price);
+      const manufacturingCost = parseFloat(newVegetable.manufacturing_cost);
+      const currentStock = parseFloat(newVegetable.current_stock) || 0;
+
+      if (isNaN(retailPrice) || retailPrice < 0 || isNaN(manufacturingCost) || manufacturingCost < 0) {
+        alert('Please enter valid prices');
+        return;
+      }
+
+      const vegetableData = {
+        name: newVegetable.name,
+        retail_price: retailPrice,
+        manufacturing_cost: manufacturingCost,
+        current_stock: currentStock,
+        unit: newVegetable.unit,
+        category: newVegetable.category
+      };
+
+      const addedVegetable = await addVegetable(vegetableData);
+      if (addedVegetable) {
+        setVegetables([...vegetables, addedVegetable]);
+        setIsAddVegetableDialogOpen(false);
+        resetForms();
+        alert('Vegetable added successfully!');
+      }
+    } catch (error) {
+      console.error('Error adding vegetable:', error);
+      alert('Failed to add vegetable. Please try again.');
+    }
+  };
+
+  const handleStockFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!stockForm.selectedItemId || !stockForm.quantity) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    const quantity = parseInt(stockForm.quantity);
+
+    if (isNaN(quantity) || quantity < 0) {
+      alert('Please enter a valid quantity');
+      return;
+    }
+
+    try {
+      // Update vegetable stock
+      const updatedVegetables = vegetables.map(item => {
+        if (item.id === stockForm.selectedItemId) {
+          return { ...item, current_stock: quantity };
+        }
+        return item;
+      });
+      setVegetables(updatedVegetables);
+      
+      alert('Stock updated successfully');
+      
+      setStockForm({
+        selectedItemId: '',
+        quantity: ''
+      });
+      setIsStockDialogOpen(false);
+    } catch (error) {
+      console.error('Error updating stock:', error);
+      alert('Failed to update stock');
+    }
+  };
+
+  const resetForms = () => {
+    setSelectedVegetableId('');
+    setQuantity('');
+    setEditingSale(null);
+    setItemForm({
+      selectedItemId: '',
+      purchaseRate: '',
+      salesRate: ''
+    });
+    setStockForm({
+      selectedItemId: '',
+      quantity: ''
+    });
+    setNewVegetable({
+      name: '',
+      retail_price: '',
+      manufacturing_cost: '',
+      current_stock: '',
+      unit: 'kg',
+      category: 'Vegetables'
+    });
   };
 
   const getFilteredSales = () => {
-    let filtered = sales;
-
-    // Search filter
+    let filtered = [...sales];
+    
     if (searchTerm) {
-      filtered = filtered.filter(sale =>
-        sale.menu_item_name.toLowerCase().includes(searchTerm.toLowerCase())
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(sale => 
+        sale.vegetable_name.toLowerCase().includes(term)
       );
     }
-
-    // Date filter
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-    switch (dateFilter) {
-      case 'today':
-        filtered = filtered.filter(sale => new Date(sale.date) >= today);
-        break;
-      case 'week':
-        filtered = filtered.filter(sale => new Date(sale.date) >= weekAgo);
-        break;
-      case 'month':
-        filtered = filtered.filter(sale => new Date(sale.date) >= monthAgo);
-        break;
-    }
-
-    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    return filtered;
   };
 
   const filteredSales = getFilteredSales();
 
   const salesSummary = {
     totalSales: filteredSales.length,
-    totalRevenue: filteredSales.reduce((sum, sale) => sum + sale.revenue, 0),
-    totalProfit: filteredSales.reduce((sum, sale) => sum + sale.profit, 0),
+    totalRevenue: filteredSales.reduce((sum, sale) => sum + (sale.revenue || 0), 0),
+    totalProfit: filteredSales.reduce((sum, sale) => sum + (sale.profit || 0), 0),
     avgSaleValue: filteredSales.length > 0 
-      ? filteredSales.reduce((sum, sale) => sum + sale.revenue, 0) / filteredSales.length 
+      ? filteredSales.reduce((sum, sale) => sum + (sale.revenue || 0), 0) / filteredSales.length 
       : 0
   };
 
-  const availableMenuItems = menuItems.filter(m => m.current_stock > 0);
+  if (loading) {
+    return <div className="p-8 text-center">Loading...</div>;
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-8">
+      <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Sales Management</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="shadow-button">
+        <div className="flex gap-4">
+          <Dialog open={isStockDialogOpen} onOpenChange={setIsStockDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" onClick={() => setIsStockDialogOpen(true)}>
+                <Package className="mr-2 h-4 w-4" />
+                Update Stock
+              </Button>
+            </DialogTrigger>
+          </Dialog>
+          
+          <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" onClick={() => setIsItemDialogOpen(true)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Update Prices
+              </Button>
+            </DialogTrigger>
+          </Dialog>
+          
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setIsDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Record Sale
+              </Button>
+            </DialogTrigger>
+            
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingSale ? 'Edit Sale' : 'Record New Sale'}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="vegetable">Vegetable</Label>
+                  <Select 
+                    value={selectedVegetableId} 
+                    onValueChange={setSelectedVegetableId}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a vegetable" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vegetables.map(vegetable => (
+                        <SelectItem key={vegetable.id} value={vegetable.id}>
+                          {vegetable.name} (Stock: {vegetable.current_stock || 0})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="quantity">Quantity (kg)</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    placeholder="Enter quantity"
+                    required
+                  />
+                </div>
+                
+                {selectedVegetableId && (
+                  <div className="p-4 bg-muted/50 rounded-md space-y-2">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Price per kg</p>
+                        <p className="font-medium">
+                          Rs{vegetables.find(v => v.id === selectedVegetableId)?.retail_price?.toFixed(2) || '0.00'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Cost per kg</p>
+                        <p className="font-medium">
+                          Rs{vegetables.find(v => v.id === selectedVegetableId)?.manufacturing_cost?.toFixed(2) || '0.00'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Total Sale</p>
+                        <p className="font-medium">
+                          Rs{(
+                            (vegetables.find(v => v.id === selectedVegetableId)?.retail_price || 0) * 
+                            (parseFloat(quantity) || 0)
+                          ).toFixed(2)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Profit</p>
+                        <p className="font-medium text-green-600">
+                          Rs{(
+                            ((vegetables.find(v => v.id === selectedVegetableId)?.retail_price || 0) - 
+                            (vegetables.find(v => v.id === selectedVegetableId)?.manufacturing_cost || 0)) * 
+                            (parseFloat(quantity) || 0)
+                          ).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex justify-between pt-4">
+                  {editingSale && (
+                    <Button 
+                      type="button"
+                      variant="destructive"
+                      onClick={async () => {
+                        if (window.confirm('Are you sure you want to delete this sale?')) {
+                          try {
+                            await deleteSale(editingSale.id);
+                            const updatedSales = await getSales();
+                            setSales(updatedSales);
+                            setIsDialogOpen(false);
+                            resetForms();
+                          } catch (error) {
+                            console.error('Error deleting sale:', error);
+                            alert('Failed to delete sale');
+                          }
+                        }
+                      }}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Sale
+                    </Button>
+                  )}
+                  <div className="flex gap-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => {
+                        setIsDialogOpen(false);
+                        resetForms();
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit">
+                      {editingSale ? 'Update' : 'Record'} Sale
+                    </Button>
+                  </div>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+      
+      {/* Sales Summary */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{salesSummary.totalSales}</div>
+            <p className="text-xs text-muted-foreground">All-time sales transactions</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">Rs{salesSummary.totalRevenue.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">Total revenue generated</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Profit</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">Rs{salesSummary.totalProfit.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">Total profit after costs</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg. Sale Value</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">Rs{salesSummary.avgSaleValue.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">Average per transaction</p>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Sales List */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Recent Sales</h2>
+          <div className="w-full max-w-sm">
+            <Input
+              type="search"
+              placeholder="Search sales..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full"
+            />
+          </div>
+        </div>
+        
+        {filteredSales.length > 0 ? (
+          <div className="space-y-4">
+            {filteredSales.map((sale) => (
+              <Card key={sale.id} className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-2">
+                        <ShoppingCart className="h-4 w-4" />
+                        <span className="font-medium">
+                          {sale.vegetable_name}
+                        </span>
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(sale.date).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {sale.quantity_sold} kg × Rs{sale.retail_price?.toFixed(2)} = Rs{sale.revenue?.toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold">Rs{sale.profit?.toFixed(2)}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEditSale(sale)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => sale.id && handleDeleteSale(sale.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className="p-8 text-center">
+            <p className="text-muted-foreground">No sales recorded yet.</p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => setIsDialogOpen(true)}
+            >
               <Plus className="mr-2 h-4 w-4" />
               Record Sale
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Record New Sale</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSaleSubmit} className="space-y-4">
+          </Card>
+        )}
+      </div>
+      
+      {/* Update Prices Dialog */}
+      <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Vegetable Prices</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleItemFormSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="item">Vegetable</Label>
+              <Select
+                value={itemForm.selectedItemId}
+                onValueChange={(value) => 
+                  setItemForm({ ...itemForm, selectedItemId: value })
+                }
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a vegetable" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vegetables.map((vegetable) => (
+                    <SelectItem key={vegetable.id} value={vegetable.id}>
+                      {vegetable.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="purchaseRate">Purchase Rate (Rs/kg)</Label>
+              <Input
+                id="purchaseRate"
+                type="number"
+                step="0.01"
+                min="0"
+                value={itemForm.purchaseRate}
+                onChange={(e) =>
+                  setItemForm({ ...itemForm, purchaseRate: e.target.value })
+                }
+                placeholder="Enter purchase rate"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="salesRate">Sales Rate (Rs/kg)</Label>
+              <Input
+                id="salesRate"
+                type="number"
+                step="0.01"
+                min="0"
+                value={itemForm.salesRate}
+                onChange={(e) =>
+                  setItemForm({ ...itemForm, salesRate: e.target.value })
+                }
+                placeholder="Enter sales rate"
+                required
+              />
+            </div>
+            
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsItemDialogOpen(false);
+                  resetForms();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">Update Prices</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Update Stock Dialog */}
+      <Dialog open={isStockDialogOpen} onOpenChange={setIsStockDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Vegetable Stock</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleStockFormSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="stockItem">Vegetable</Label>
+              <Select
+                value={stockForm.selectedItemId}
+                onValueChange={(value) =>
+                  setStockForm({ ...stockForm, selectedItemId: value })
+                }
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a vegetable" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vegetables.map((vegetable) => (
+                    <SelectItem key={vegetable.id} value={vegetable.id}>
+                      {vegetable.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="stockQuantity">Current Stock (kg)</Label>
+              <Input
+                id="stockQuantity"
+                type="number"
+                min="0"
+                step="0.01"
+                value={stockForm.quantity}
+                onChange={(e) =>
+                  setStockForm({ ...stockForm, quantity: e.target.value })
+                }
+                placeholder="Enter current stock"
+                required
+              />
+            </div>
+            
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsStockDialogOpen(false);
+                  resetForms();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">Update Stock</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Vegetable Dialog */}
+      <Dialog open={isAddVegetableDialogOpen} onOpenChange={setIsAddVegetableDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Vegetable</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddVegetable} className="space-y-4">
+            <div>
+              <Label htmlFor="vegetableName">Vegetable Name *</Label>
+              <Input
+                id="vegetableName"
+                value={newVegetable.name}
+                onChange={(e) => setNewVegetable({...newVegetable, name: e.target.value})}
+                placeholder="Enter vegetable name"
+                required
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="menuItem">Menu Item</Label>
-                <Select value={selectedMenuItemId} onValueChange={setSelectedMenuItemId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a menu item" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableMenuItems.map((menuItem) => (
-                      <SelectItem key={menuItem.id} value={menuItem.id}>
-                        {menuItem.name} (Stock: {menuItem.current_stock}) - Rs{menuItem.retail_price}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {selectedMenuItemId && (
-                <div className="p-3 bg-muted/50 rounded-lg text-sm">
-                  {(() => {
-                    const menuItem = menuItems.find(m => m.id === selectedMenuItemId);
-                    if (!menuItem) return null;
-                    
-                    const quantityNum = parseInt(quantity) || 0;
-                    const revenue = menuItem.retail_price * quantityNum;
-                    const profit = (menuItem.retail_price - menuItem.manufacturing_cost) * quantityNum;
-                    
-                    return (
-                      <div className="space-y-1">
-                        <div className="flex justify-between">
-                          <span>Retail Price:</span>
-                          <span>Rs{menuItem.retail_price.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Manufacturing Cost:</span>
-                          <span>Rs{menuItem.manufacturing_cost.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Available Stock:</span>
-                          <span>{menuItem.current_stock}</span>
-                        </div>
-                        {quantityNum > 0 && (
-                          <>
-                            <hr className="my-2" />
-                            <div className="flex justify-between font-medium">
-                              <span>Total Revenue:</span>
-                              <span className="text-success">Rs{revenue.toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between font-medium">
-                              <span>Total Profit:</span>
-                              <span className="text-success">Rs{profit.toFixed(2)}</span>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-              
-              <div>
-                <Label htmlFor="quantity">Quantity</Label>
+                <Label htmlFor="retailPrice">Retail Price (Rs/kg) *</Label>
                 <Input
-                  id="quantity"
+                  id="retailPrice"
                   type="number"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  placeholder="Enter quantity"
-                  min="1"
+                  step="0.01"
+                  min="0"
+                  value={newVegetable.retail_price}
+                  onChange={(e) => setNewVegetable({...newVegetable, retail_price: e.target.value})}
+                  placeholder="0.00"
                   required
                 />
               </div>
               
-              <div className="flex gap-2">
-                <Button type="submit" className="flex-1">
-                  Record Sale
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Sales Summary */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="p-4 shadow-card">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <ShoppingCart className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Sales</p>
-              <p className="text-2xl font-bold">{salesSummary.totalSales}</p>
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="p-4 shadow-card">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-success/10">
-              <DollarSign className="h-6 w-6 text-success" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Revenue</p>
-              <p className="text-2xl font-bold">Rs{salesSummary.totalRevenue.toFixed(2)}</p>
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="p-4 shadow-card">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-secondary/10">
-              <TrendingUp className="h-6 w-6 text-secondary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Profit</p>
-              <p className="text-2xl font-bold">Rs{salesSummary.totalProfit.toFixed(2)}</p>
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="p-4 shadow-card">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-warning/10">
-              <DollarSign className="h-6 w-6 text-warning" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Avg Sale Value</p>
-              <p className="text-2xl font-bold">Rs{salesSummary.avgSaleValue.toFixed(2)}</p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <Card className="p-4 shadow-card">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Input
-            placeholder="Search sales by menu item name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
-          />
-          <div className="flex gap-2">
-            <Button
-              variant={dateFilter === 'all' ? 'default' : 'outline'}
-              onClick={() => setDateFilter('all')}
-              size="sm"
-            >
-              All Time
-            </Button>
-            <Button
-              variant={dateFilter === 'today' ? 'default' : 'outline'}
-              onClick={() => setDateFilter('today')}
-              size="sm"
-            >
-              Today
-            </Button>
-            <Button
-              variant={dateFilter === 'week' ? 'default' : 'outline'}
-              onClick={() => setDateFilter('week')}
-              size="sm"
-            >
-              This Week
-            </Button>
-            <Button
-              variant={dateFilter === 'month' ? 'default' : 'outline'}
-              onClick={() => setDateFilter('month')}
-              size="sm"
-            >
-              This Month
-            </Button>
-          </div>
-        </div>
-      </Card>
-
-      {/* Sales List */}
-      <div className="space-y-4">
-        {filteredSales.map((sale) => (
-          <Card key={sale.id} className="p-6 shadow-card">
-            <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-lg">{sale.menu_item_name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(sale.date).toLocaleString()}
-                </p>
+                <Label htmlFor="manufacturingCost">Cost (Rs/kg) *</Label>
+                <Input
+                  id="manufacturingCost"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={newVegetable.manufacturing_cost}
+                  onChange={(e) => setNewVegetable({...newVegetable, manufacturing_cost: e.target.value})}
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="initialStock">Initial Stock (kg)</Label>
+                <Input
+                  id="initialStock"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={newVegetable.current_stock}
+                  onChange={(e) => setNewVegetable({...newVegetable, current_stock: e.target.value})}
+                  placeholder="0"
+                />
               </div>
               
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div className="text-center">
-                  <p className="text-muted-foreground">Quantity</p>
-                  <p className="font-medium text-lg">{sale.quantity_sold}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-muted-foreground">Unit Price</p>
-                  <p className="font-medium">Rs{sale.retail_price.toFixed(2)}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-muted-foreground">Revenue</p>
-                  <p className="font-medium text-success">Rs{sale.revenue.toFixed(2)}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-muted-foreground">Profit</p>
-                  <p className="font-medium text-success">Rs{sale.profit.toFixed(2)}</p>
-                </div>
+              <div>
+                <Label htmlFor="unit">Unit</Label>
+                <Select
+                  value={newVegetable.unit}
+                  onValueChange={(value) => setNewVegetable({...newVegetable, unit: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="kg">kg</SelectItem>
+                    <SelectItem value="g">g</SelectItem>
+                    <SelectItem value="piece">Piece</SelectItem>
+                    <SelectItem value="bunch">Bunch</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-          </Card>
-        ))}
-      </div>
+            
+            <div>
+              <Label htmlFor="category">Category</Label>
+              <Input
+                id="category"
+                value={newVegetable.category}
+                onChange={(e) => setNewVegetable({...newVegetable, category: e.target.value})}
+                placeholder="e.g., Leafy Greens, Root Vegetables"
+              />
+            </div>
+            
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsAddVegetableDialogOpen(false);
+                  resetForms();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">Add Vegetable</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-      {filteredSales.length === 0 && (
-        <Card className="p-8 text-center shadow-card">
-          <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium mb-2">No sales found</h3>
-          <p className="text-muted-foreground mb-4">
-            {searchTerm || dateFilter !== 'all' 
-              ? 'No sales match your current filters.' 
-              : 'Record your first sale to get started.'}
-          </p>
-          {!searchTerm && dateFilter === 'all' && (
-            <Button onClick={() => setIsDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Record Sale
-            </Button>
-          )}
-        </Card>
-      )}
+      {/* Vegetables List */}
+      <div className="mt-12">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold">Available Vegetables</h2>
+          <Button 
+            onClick={() => setIsAddVegetableDialogOpen(true)}
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Vegetable
+          </Button>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {vegetables.map((vegetable) => (
+            <Card key={vegetable.id}>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">{vegetable.name}</CardTitle>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreVertical className="h-4 w-4" />
+                        <span className="sr-only">More options</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem 
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => handleDeleteVegetable(vegetable.id)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Remove
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Current Stock:</span>
+                    <span className="font-medium">{vegetable.current_stock || 0} kg</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Price:</span>
+                    <span className="font-medium">Rs{vegetable.retail_price?.toFixed(2)}/kg</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Cost:</span>
+                    <span className="font-medium">Rs{vegetable.manufacturing_cost?.toFixed(2)}/kg</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

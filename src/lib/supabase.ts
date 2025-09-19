@@ -1,19 +1,26 @@
+// In your supabase.ts file, it should look like this:
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = 'https://tunnqdtqrypmunxajomv.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1bm5xZHRxcnlwbXVueGFqb212Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MTMzNTMsImV4cCI6MjA2OTA4OTM1M30.Kc6cz49FjduNErUCO39Oe-bil9mtMosBeYf-CNlxhYk'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true
+  }
+})
 
 // Database types
-export interface MenuItem {
+export interface Vegetable {
   id: string
   name: string
-  sku: string
+  sku?: string
   retail_price: number
   manufacturing_cost: number
   current_stock: number
   category?: string
+  unit?: string
   created_at: string
   updated_at: string
 }
@@ -32,8 +39,8 @@ export interface InventoryItem {
 
 export interface Sale {
   id: string
-  menu_item_id: string
-  menu_item_name: string
+  vegetable_id: string
+  vegetable_name: string
   quantity_sold: number
   date: string
   retail_price: number
@@ -46,7 +53,10 @@ export interface Sale {
 export interface DashboardStats {
   totalRevenue: number
   totalProfit: number
-  totalMenuItems: number
+  totalVegetables: number
   totalInventoryItems: number
   totalSales: number
-} 
+  totalExpenses: number
+  netProfit: number
+  lowStockCount: number
+}

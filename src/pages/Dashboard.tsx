@@ -1,16 +1,26 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getDashboardStats, getMenuItems, getInventoryItems, getSales } from '@/lib/database';
-import type { DashboardStats, MenuItem, InventoryItem, Sale } from '@/lib/supabase';
-import { TrendingUp, Package, ShoppingCart, DollarSign, AlertTriangle, Warehouse } from 'lucide-react';
+import { getDashboardStats, getVegetables, getSales, getExpenses } from '@/lib/database';
+import type { DashboardStats, Vegetable, Sale } from '@/lib/supabase';
+import { TrendingUp, Package, ShoppingCart, DollarSign, AlertTriangle, Receipt } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
-  const [lowStockMenuItems, setLowStockMenuItems] = useState<MenuItem[]>([]);
-  const [lowStockInventoryItems, setLowStockInventoryItems] = useState<InventoryItem[]>([]);
+  const [lowStockVegetables, setLowStockVegetables] = useState<Vegetable[]>([]);
+  
+  interface Expense {
+    id: string;
+    category: string;
+    description: string;
+    amount: number;
+    date: string;
+    created_at: string;
+  }
+  
+  const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,17 +30,31 @@ const Dashboard = () => {
         setLoading(true);
         setError(null);
         
-        const [dashboardStats, allSales, allMenuItems, allInventoryItems] = await Promise.all([
+        const [statsData, salesData, expensesData, vegetablesData] = await Promise.all([
           getDashboardStats(),
           getSales(),
-          getMenuItems(),
-          getInventoryItems()
+          getExpenses(),
+          getVegetables()
         ]);
+        
+        // Filter for low stock vegetables
+        const lowStockVeggies = vegetablesData.filter(item => item.current_stock <= 5 && item.current_stock > 0);
       
-        setStats(dashboardStats);
-        setRecentSales(allSales.slice(-5).reverse());
-        setLowStockMenuItems(allMenuItems.filter(m => m.current_stock <= 5));
-        setLowStockInventoryItems(allInventoryItems.filter(i => i.current_stock <= i.min_stock_level));
+        // Map the stats to match the expected DashboardStats interface
+        const mappedStats = {
+          totalRevenue: statsData.totalRevenue || 0,
+          totalProfit: statsData.totalProfit || 0,
+          totalVegetables: statsData.totalVegetables || 0,
+          totalInventoryItems: statsData.totalVegetables || 0, // Kept for backward compatibility
+          totalSales: statsData.totalSales || 0,
+          totalExpenses: statsData.totalExpenses || 0,
+          netProfit: statsData.netProfit || 0,
+          lowStockCount: statsData.lowStockCount || 0
+        } as DashboardStats;
+        setStats(mappedStats);
+        setRecentSales(salesData.slice(-5).reverse());
+        setLowStockVegetables(lowStockVeggies);
+        setRecentExpenses(expensesData.slice(-5).reverse());
       } catch (error) {
         console.error('Error loading dashboard data:', error);
         setError('Failed to load dashboard data');
@@ -91,7 +115,7 @@ const Dashboard = () => {
         <Card className="p-8 text-center shadow-card">
           <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium mb-2">No Data Available</h3>
-          <p className="text-muted-foreground">Start by adding some menu items and inventory items.</p>
+          <p className="text-muted-foreground">Start by adding some vegetables and recording sales.</p>
         </Card>
       </div>
     );
@@ -113,18 +137,18 @@ const Dashboard = () => {
       bgColor: 'bg-secondary/10'
     },
     {
-      title: 'Menu Items',
-      value: stats.totalMenuItems.toString(),
+      title: 'Vegetables',
+      value: stats.totalVegetables.toString(),
       icon: Package,
       color: 'text-primary',
       bgColor: 'bg-primary/10'
     },
     {
-      title: 'Inventory Items',
+      title: 'Low Stock Items',
       value: stats.totalInventoryItems.toString(),
-      icon: Warehouse,
-      color: 'text-secondary',
-      bgColor: 'bg-secondary/10'
+      icon: AlertTriangle,
+      color: 'text-warning',
+      bgColor: 'bg-warning/10'
     },
     {
       title: 'Total Sales',
@@ -140,7 +164,7 @@ const Dashboard = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <div className="text-sm text-muted-foreground">
-          Welcome to SalesPro Manager
+          Welcome to Sales Manager
         </div>
       </div>
 
@@ -179,7 +203,7 @@ const Dashboard = () => {
             {recentSales.map((sale) => (
               <div key={sale.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                 <div>
-                  <p className="font-medium">{sale.menu_item_name}</p>
+                  <p className="font-medium">{sale.vegetable_name}</p>
                   <p className="text-sm text-muted-foreground">
                     {new Date(sale.date).toLocaleDateString()}
                   </p>
@@ -196,64 +220,64 @@ const Dashboard = () => {
           </div>
         </Card>
 
-        {/* Low Stock Menu Items */}
+        {/* Low Stock Vegetables */}
         <Card className="p-6 shadow-card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Low Stock Menu Items</h2>
-            <Link to="/products">
+            <h2 className="text-xl font-semibold">Low Stock Vegetables</h2>
+            <Link to="/sales">
               <Button variant="outline" size="sm">
-                View All
+                Manage Stock
               </Button>
             </Link>
           </div>
           <div className="space-y-3">
-            {lowStockMenuItems.map((menuItem) => (
-              <div key={menuItem.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+            {lowStockVegetables.map((vegetable) => (
+              <div key={vegetable.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                 <div>
-                  <p className="font-medium">{menuItem.name}</p>
-                  <p className="text-sm text-muted-foreground">{menuItem.category || 'No category'}</p>
+                  <p className="font-medium">{vegetable.name}</p>
+                  <p className="text-sm text-muted-foreground">{vegetable.category || 'Vegetables'}</p>
                 </div>
                 <div className="text-right">
-                  <p className={`font-medium ${menuItem.current_stock === 0 ? 'text-destructive' : 'text-warning'}`}>
-                    {menuItem.current_stock} in stock
+                  <p className={`font-medium ${vegetable.current_stock === 0 ? 'text-destructive' : 'text-warning'}`}>
+                    {vegetable.current_stock} in stock
                   </p>
-                  <p className="text-sm text-muted-foreground">Rs{menuItem.retail_price}</p>
+                  <p className="text-sm text-muted-foreground">Rs{vegetable.retail_price}</p>
                 </div>
               </div>
             ))}
-            {lowStockMenuItems.length === 0 && (
-              <p className="text-center text-muted-foreground py-4">All menu items well stocked</p>
+            {lowStockVegetables.length === 0 && (
+              <p className="text-center text-muted-foreground py-4">All vegetables well stocked</p>
             )}
           </div>
         </Card>
 
-        {/* Low Stock Inventory Items */}
+        {/* Recent Expenses */}
         <Card className="p-6 shadow-card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Low Stock Inventory</h2>
-            <Link to="/inventory">
+            <h2 className="text-xl font-semibold">Recent Expenses</h2>
+            <Link to="/sales">
               <Button variant="outline" size="sm">
                 View All
               </Button>
             </Link>
           </div>
           <div className="space-y-3">
-            {lowStockInventoryItems.map((inventoryItem) => (
-              <div key={inventoryItem.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+            {recentExpenses.map((expense) => (
+              <div key={expense.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                 <div>
-                  <p className="font-medium">{inventoryItem.name}</p>
-                  <p className="text-sm text-muted-foreground">{inventoryItem.category || 'No category'}</p>
+                  <p className="font-medium capitalize">{expense.category}</p>
+                  <p className="text-sm text-muted-foreground">{expense.description}</p>
                 </div>
                 <div className="text-right">
-                  <p className={`font-medium ${inventoryItem.current_stock === 0 ? 'text-destructive' : 'text-warning'}`}>
-                    {inventoryItem.current_stock} in stock
+                  <p className="font-medium text-destructive">Rs{expense.amount.toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {expense.category || 'Uncategorized'} • {new Date(expense.date).toLocaleDateString()}
                   </p>
-                  <p className="text-sm text-muted-foreground">Min: {inventoryItem.min_stock_level}</p>
                 </div>
               </div>
             ))}
-            {lowStockInventoryItems.length === 0 && (
-              <p className="text-center text-muted-foreground py-4">All inventory items well stocked</p>
+            {recentExpenses.length === 0 && (
+              <p className="text-center text-muted-foreground py-4">No recent expenses</p>
             )}
           </div>
         </Card>

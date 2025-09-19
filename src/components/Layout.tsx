@@ -7,8 +7,9 @@ import {
   ShoppingCart, 
   TrendingUp, 
   Settings,
-  Menu,
-  Warehouse
+  List,
+  Warehouse,
+  DollarSign
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -22,10 +23,8 @@ const Layout = ({ children }: LayoutProps) => {
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: BarChart3 },
-    { name: 'Menu', href: '/products', icon: Package },
-    { name: 'Inventory', href: '/inventory', icon: Warehouse },
     { name: 'Sales', href: '/sales', icon: ShoppingCart },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    { name: 'Expenses', href: '/expenses', icon: DollarSign },
   ];
 
   return (
@@ -37,7 +36,7 @@ const Layout = ({ children }: LayoutProps) => {
           <div className="flex h-full flex-col">
             <div className="flex h-16 items-center px-6 border-b border-border">
               <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                SalesPro Manager
+                Sales Manager
               </h1>
             </div>
             <nav className="flex-1 space-y-1 p-4">
@@ -70,7 +69,7 @@ const Layout = ({ children }: LayoutProps) => {
         <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-sidebar border-r border-border">
           <div className="flex h-16 shrink-0 items-center px-6 border-b border-border">
             <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              SalesPro Manager
+              Sales Manager
             </h1>
           </div>
           <nav className="flex flex-1 flex-col px-4">
@@ -110,10 +109,10 @@ const Layout = ({ children }: LayoutProps) => {
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden"
             >
-              <Menu className="h-5 w-5" />
+              <List className="h-5 w-5" />
             </Button>
             <div className="flex-1 text-sm font-semibold leading-6">
-              SalesPro Manager
+              Sales Manager
             </div>
           </div>
         </div>
