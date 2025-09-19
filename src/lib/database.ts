@@ -363,14 +363,13 @@ export const addSale = async (sale: Omit<Sale, 'id' | 'created_at'>): Promise<Sa
       throw new Error(`Not enough stock. Only ${vegetable.current_stock} ${vegetable.unit} available.`)
     }
 
-    // Add the sale
+    // Add the sale with the provided prices
     const { data, error } = await supabase
       .from('sales')
       .insert([{
         ...sale,
-        vegetable_name: vegetable.name, // Ensure vegetable_name is set
-        retail_price: vegetable.retail_price,
-        manufacturing_cost: vegetable.manufacturing_cost
+        vegetable_name: vegetable.name // Ensure vegetable_name is set from the database
+        // Use the prices from the sale object, not from the database
       }])
       .select()
       .single()

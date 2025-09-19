@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getSales, getVegetables, addSale, updateSale, deleteSale, addVegetable, deleteVegetable } from '@/lib/database';
+import { getSales, getVegetables, addSale, updateSale, deleteSale, addVegetable, deleteVegetable, updateVegetablePrices, updateVegetableStock } from '@/lib/database';
 import type { Sale, Vegetable } from '@/lib/supabase';
 import { Plus, ShoppingCart, TrendingUp, Edit, Trash2, Package, MoreVertical } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -184,16 +184,18 @@ const Sales = () => {
     }
 
     try {
-      // Update vegetable prices
-      const updatedVegetables = vegetables.map(item => {
-        if (item.id === itemForm.selectedItemId) {
-          return { ...item, retail_price: salesRate, manufacturing_cost: purchaseRate };
-        }
-        return item;
-      });
-      setVegetables(updatedVegetables);
-      
-      alert('Item prices updated successfully');
+      // Persist to database
+      const updated = await updateVegetablePrices(itemForm.selectedItemId, salesRate, purchaseRate);
+      if (updated) {
+        // Sync local state
+        const updatedVegetables = vegetables.map(item =>
+          item.id === itemForm.selectedItemId ? { ...item, retail_price: updated.retail_price, manufacturing_cost: updated.manufacturing_cost } : item
+        );
+        setVegetables(updatedVegetables);
+        alert('Item prices updated successfully');
+      } else {
+        throw new Error('Failed to update item prices');
+      }
       
       setItemForm({
         selectedItemId: '',
@@ -255,7 +257,7 @@ const Sales = () => {
       return;
     }
 
-    const quantity = parseInt(stockForm.quantity);
+    const quantity = parseFloat(stockForm.quantity);
 
     if (isNaN(quantity) || quantity < 0) {
       alert('Please enter a valid quantity');
@@ -263,16 +265,17 @@ const Sales = () => {
     }
 
     try {
-      // Update vegetable stock
-      const updatedVegetables = vegetables.map(item => {
-        if (item.id === stockForm.selectedItemId) {
-          return { ...item, current_stock: quantity };
-        }
-        return item;
-      });
-      setVegetables(updatedVegetables);
-      
-      alert('Stock updated successfully');
+      // Persist to database
+      const updated = await updateVegetableStock(stockForm.selectedItemId, quantity);
+      if (updated) {
+        const updatedVegetables = vegetables.map(item =>
+          item.id === stockForm.selectedItemId ? { ...item, current_stock: updated.current_stock } : item
+        );
+        setVegetables(updatedVegetables);
+        alert('Stock updated successfully');
+      } else {
+        throw new Error('Failed to update stock');
+      }
       
       setStockForm({
         selectedItemId: '',
