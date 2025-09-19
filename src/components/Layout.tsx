@@ -120,14 +120,14 @@ const Layout = ({ children }: LayoutProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white text-black">
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? '' : 'hidden'}`}>
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-        <div className="fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-border">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-black/10 shadow-2xl">
           <div className="flex h-full flex-col">
-            <div className="flex h-16 items-center px-6 border-b border-border">
-              <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            <div className="flex h-16 items-center px-6 border-b border-black/10">
+              <h1 className="text-xl font-bold">
                 Sales Manager
               </h1>
             </div>
@@ -140,10 +140,10 @@ const Layout = ({ children }: LayoutProps) => {
                     key={item.name}
                     to={item.href}
                     onClick={() => setSidebarOpen(false)}
-                    className={`group flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                    className={`group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                       isActive
-                        ? 'bg-primary text-primary-foreground shadow-button'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        ? 'bg-black text-white'
+                        : 'text-black/70 hover:text-black hover:bg-black/5'
                     }`}
                   >
                     <Icon className="mr-3 h-5 w-5" />
@@ -155,12 +155,12 @@ const Layout = ({ children }: LayoutProps) => {
             <div className="mt-auto p-4">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button variant="outline" className="w-full justify-start border-black/10">
                     <FileDown className="mr-2 h-4 w-4" />
                     Report
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" side="top">
+                <DropdownMenuContent align="start" side="top" className="bg-white border border-black/10">
                   <DropdownMenuItem onClick={exportToPDF}>Export to PDF</DropdownMenuItem>
                   <DropdownMenuItem onClick={exportToXLSX}>Export to Excel</DropdownMenuItem>
                 </DropdownMenuContent>
@@ -172,9 +172,9 @@ const Layout = ({ children }: LayoutProps) => {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-        <div className="flex grow flex-col bg-white gap-y-5 overflow-y-auto bg-sidebar border-r border-border">
-          <div className="flex h-16 shrink-0 items-center px-6 border-b border-border">
-            <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+        <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white border-r border-black/10">
+          <div className="flex h-16 shrink-0 items-center px-6 border-b border-black/10">
+            <h1 className="text-xl font-bold">
               Sales Manager
             </h1>
           </div>
@@ -187,10 +187,8 @@ const Layout = ({ children }: LayoutProps) => {
                   <li key={item.name}>
                     <Link
                       to={item.href}
-                      className={`group flex gap-x-3 rounded-lg p-3 text-sm font-medium transition-all ${
-                        isActive
-                          ? 'bg-primary text-primary-foreground shadow-button'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      className={`group flex gap-x-3 rounded-md p-3 text-sm font-medium transition-colors ${
+                        isActive ? 'bg-black text-white' : 'text-black/70 hover:text-black hover:bg-black/5'
                       }`}
                     >
                       <Icon className="h-5 w-5 shrink-0" />
@@ -204,12 +202,12 @@ const Layout = ({ children }: LayoutProps) => {
           <div className="px-4 pb-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start border-black/10">
                   <FileDown className="mr-2 h-4 w-4" />
                   Report
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" side="top">
+              <DropdownMenuContent align="start" side="top" className="bg-white border border-black/10">
                 <DropdownMenuItem onClick={exportToPDF}>Export to PDF</DropdownMenuItem>
                 <DropdownMenuItem onClick={exportToXLSX}>Export to Excel</DropdownMenuItem>
               </DropdownMenuContent>
@@ -222,7 +220,7 @@ const Layout = ({ children }: LayoutProps) => {
       <div className="lg:pl-72">
         {/* Mobile header */}
         <div className="sticky top-0 z-40 lg:hidden">
-          <div className="flex h-16 items-center gap-x-4 border-b border-border bg-card px-4 shadow-card sm:gap-x-6 sm:px-6">
+          <div className="flex h-16 items-center gap-x-4 border-b border-black/10 bg-white px-4 sm:gap-x-6 sm:px-6">
             <Button
               variant="ghost"
               size="sm"
@@ -238,7 +236,7 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
 
         {/* Page content */}
-        <main className="py-6 bg-main-content min-h-screen">
+        <main className="py-6 min-h-screen">
           <div className="px-4 sm:px-6 lg:px-8">
             {children}
           </div>

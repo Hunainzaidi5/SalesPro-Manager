@@ -327,7 +327,7 @@ const Sales = () => {
   };
 
   if (loading) {
-    return <div className="p-8 text-center">Loading...</div>;
+    return <div className="p-8 text-center text-black/60">Loading...</div>;
   }
 
   return (
@@ -383,24 +383,24 @@ const Sales = () => {
                 </div>
                 
                 {selectedVegetableId && (
-                  <div className="p-4 bg-muted/50 rounded-md space-y-2">
+                  <div className="p-4 bg-black/5 rounded-md space-y-2">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm text-muted-foreground">Price per kg</p>
+                        <p className="text-sm text-black/60">Price per kg</p>
                         <p className="font-medium">
                           Rs{vegetables.find(v => v.id === selectedVegetableId)?.retail_price?.toFixed(2) || '0.00'}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Cost per kg</p>
+                        <p className="text-sm text-black/60">Cost per kg</p>
                         <p className="font-medium">
                           Rs{vegetables.find(v => v.id === selectedVegetableId)?.manufacturing_cost?.toFixed(2) || '0.00'}
                         </p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                    <div className="grid grid-cols-2 gap-4 pt-2 border-t border-black/10">
                       <div>
-                        <p className="text-sm text-muted-foreground">Total Sale</p>
+                        <p className="text-sm text-black/60">Total Sale</p>
                         <p className="font-medium">
                           Rs{(
                             (vegetables.find(v => v.id === selectedVegetableId)?.retail_price || 0) * 
@@ -409,8 +409,8 @@ const Sales = () => {
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Profit</p>
-                        <p className="font-medium text-green-600">
+                        <p className="text-sm text-black/60">Profit</p>
+                        <p className="font-medium">
                           Rs{(
                             ((vegetables.find(v => v.id === selectedVegetableId)?.retail_price || 0) - 
                             (vegetables.find(v => v.id === selectedVegetableId)?.manufacturing_cost || 0)) * 
@@ -450,6 +450,7 @@ const Sales = () => {
                     <Button 
                       type="button" 
                       variant="outline" 
+                      className="border-black/10"
                       onClick={() => {
                         setIsDialogOpen(false);
                         resetForms();
@@ -470,47 +471,47 @@ const Sales = () => {
       
       {/* Sales Summary */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <Card>
+        <Card className="border border-black/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            <ShoppingCart className="h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{salesSummary.totalSales}</div>
-            <p className="text-xs text-muted-foreground">All-time sales transactions</p>
+            <p className="text-xs text-black/60">All-time sales transactions</p>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="border border-black/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">Rs{salesSummary.totalRevenue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Total revenue generated</p>
+            <p className="text-xs text-black/60">Total revenue generated</p>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="border border-black/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Profit</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">Rs{salesSummary.totalProfit.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Total profit after costs</p>
+            <p className="text-xs text-black/60">Total profit after costs</p>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="border border-black/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg. Sale Value</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">Rs{salesSummary.avgSaleValue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Average per transaction</p>
+            <p className="text-xs text-black/60">Average per transaction</p>
           </CardContent>
         </Card>
       </div>
@@ -533,7 +534,7 @@ const Sales = () => {
         {filteredSales.length > 0 ? (
           <div className="space-y-4">
             {filteredSales.map((sale) => (
-              <Card key={sale.id} className="p-6">
+              <Card key={sale.id} className="p-6 border border-black/10">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
@@ -543,11 +544,11 @@ const Sales = () => {
                           {sale.vegetable_name}
                         </span>
                       </div>
-                      <span className="text-sm text-muted-foreground">
+                      <span className="text-sm text-black/60">
                         {new Date(sale.date).toLocaleDateString()}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-black/60">
                       {sale.quantity_sold} kg × Rs{sale.retail_price?.toFixed(2)} = Rs{sale.revenue?.toFixed(2)}
                     </p>
                   </div>
@@ -565,7 +566,7 @@ const Sales = () => {
                       size="icon"
                       onClick={() => sale.id && handleDeleteSale(sale.id)}
                     >
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -573,8 +574,8 @@ const Sales = () => {
             ))}
           </div>
         ) : (
-          <Card className="p-8 text-center">
-            <p className="text-muted-foreground">No sales recorded yet.</p>
+          <Card className="p-8 text-center border border-black/10">
+            <p className="text-black/60">No sales recorded yet.</p>
             <Button
               variant="outline"
               className="mt-4"
@@ -850,7 +851,7 @@ const Sales = () => {
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {vegetables.map((vegetable) => (
-            <Card key={vegetable.id}>
+            <Card key={vegetable.id} className="border border-black/10">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{vegetable.name}</CardTitle>
@@ -861,7 +862,7 @@ const Sales = () => {
                         <span className="sr-only">More options</span>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" className="bg-white border border-black/10">
                       <DropdownMenuItem 
                         onClick={() => {
                           setItemForm({
@@ -894,7 +895,7 @@ const Sales = () => {
                         Update Stock
                       </DropdownMenuItem>
                       <DropdownMenuItem 
-                        className="text-destructive focus:text-destructive"
+                        className="text-red-600 focus:text-red-600"
                         onClick={() => handleDeleteVegetable(vegetable.id)}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
@@ -907,15 +908,15 @@ const Sales = () => {
               <CardContent>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Current Stock:</span>
+                    <span className="text-black/60">Current Stock:</span>
                     <span className="font-medium">{vegetable.current_stock || 0} kg</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Price:</span>
+                    <span className="text-black/60">Price:</span>
                     <span className="font-medium">Rs{vegetable.retail_price?.toFixed(2)}/kg</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Cost:</span>
+                    <span className="text-black/60">Cost:</span>
                     <span className="font-medium">Rs{vegetable.manufacturing_cost?.toFixed(2)}/kg</span>
                   </div>
                 </div>

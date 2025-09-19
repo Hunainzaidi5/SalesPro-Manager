@@ -176,28 +176,28 @@ const Expenses = () => {
       {/* Expense Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
         {/* Total Expenses Card */}
-        <Card>
+        <Card className="border border-black/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">Rs{expenseStats.totalExpenses.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">All-time expense total</p>
+            <p className="text-xs text-black/60">All-time expense total</p>
           </CardContent>
         </Card>
         
         {/* This Month's Expenses */}
-        <Card>
+        <Card className="border border-black/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">This Month</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Calendar className="h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">Rs{expenseStats.thisMonthExpenses.toFixed(2)}</div>
-            <div className="flex items-center text-xs text-muted-foreground">
+            <div className="flex items-center text-xs text-black/60">
               {expenseStats.monthOverMonthChange !== 0 && (
-                <span className={`flex items-center ${expenseStats.monthOverMonthChange >= 0 ? 'text-destructive' : 'text-green-600'}`}>
+                <span className={`flex items-center ${expenseStats.monthOverMonthChange >= 0 ? 'text-black' : 'text-black'}`}>
                   {expenseStats.monthOverMonthChange >= 0 ? (
                     <TrendingUp className="h-3 w-3 mr-1" />
                   ) : (
@@ -211,33 +211,33 @@ const Expenses = () => {
         </Card>
         
         {/* Average Expense */}
-        <Card>
+        <Card className="border border-black/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Average Expense</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">Rs{expenseStats.avgExpense.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Per transaction</p>
+            <p className="text-xs text-black/60">Per transaction</p>
           </CardContent>
         </Card>
         
         {/* Top Category */}
-        <Card>
+        <Card className="border border-black/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Top Category</CardTitle>
-            <Tag className="h-4 w-4 text-muted-foreground" />
+            <Tag className="h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold capitalize">{expenseStats.topCategory.name}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-black/60">
               Rs{expenseStats.topCategory.amount.toFixed(2)} • {expenseStats.topCategory.percentage.toFixed(1)}% of total
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="p-4 shadow-card">
+      <Card className="p-4 border border-black/10">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Total Expenses</h2>
           <p className="text-2xl font-bold">Rs{totalExpenses.toFixed(2)}</p>
@@ -246,15 +246,15 @@ const Expenses = () => {
 
       <div className="space-y-4">
         {expenses.map((expense) => (
-          <Card key={expense.id} className="p-4 shadow-card">
+          <Card key={expense.id} className="p-4 border border-black/10">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <DollarSign className="h-4 w-4" />
                   <span className="font-medium">{expense.category}</span>
                 </div>
-                <p className="text-sm text-muted-foreground">{expense.description}</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-black/60">{expense.description}</p>
+                <p className="text-sm text-black/60">
                   {format(new Date(expense.date), 'MMM d, yyyy')}
                 </p>
               </div>
@@ -272,7 +272,7 @@ const Expenses = () => {
                   size="icon"
                   onClick={() => expense.id && handleDelete(expense.id)}
                 >
-                  <Trash2 className="h-4 w-4 text-destructive" />
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </div>
