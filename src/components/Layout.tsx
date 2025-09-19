@@ -2,14 +2,10 @@ import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
-  BarChart3, 
-  Package, 
-  ShoppingCart, 
-  TrendingUp, 
-  Settings,
+  House,
   List,
-  Warehouse,
-  DollarSign
+  Banknote,
+  NotebookPen,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -22,9 +18,9 @@ const Layout = ({ children }: LayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: BarChart3 },
-    { name: 'Sales', href: '/sales', icon: ShoppingCart },
-    { name: 'Expenses', href: '/expenses', icon: DollarSign },
+    { name: 'Dashboard', href: '/', icon: House },
+    { name: 'Sales', href: '/sales', icon: NotebookPen },
+    { name: 'Expenses', href: '/expenses', icon: Banknote },
   ];
 
   return (

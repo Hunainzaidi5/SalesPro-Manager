@@ -414,7 +414,22 @@ export const addSale = async (sale: Omit<Sale, 'id' | 'created_at'>): Promise<Sa
       throw error
     }
 
-    // Do not manually update stock here; DB triggers handle stock adjustment on sale insert
+    // Fallback: If DB triggers didn't decrement stock, correct it here
+    try {
+      const { data: vegAfter } = await supabase
+        .from('vegetables')
+        .select('current_stock')
+        .eq('id', sale.vegetable_id)
+        .single();
+      const expectedStock = Math.max(0, (vegetable.current_stock || 0) - (sale.quantity_sold || 0));
+      const currentStockAfter = vegAfter?.current_stock ?? vegetable.current_stock;
+      const epsilon = 0.0001;
+      if (Math.abs(Number(currentStockAfter) - Number(expectedStock)) > epsilon) {
+        await updateVegetableStock(sale.vegetable_id, expectedStock);
+      }
+    } catch (fallbackErr) {
+      console.warn('Post-insert stock verification/update failed:', fallbackErr);
+    }
 
     return data;
   } catch (error) {
