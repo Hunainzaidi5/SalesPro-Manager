@@ -1,7 +1,9 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">SalesPro Manager</string>
     <string name="title_activity_main">SalesPro Manager</string>
     <string name="package_name">com.salespro.manager</string>
     <string name="custom_url_scheme">com.salespro.manager</string>
+    <string name="supabase_url" translatable="false">https://tunnqdtqrypmunxajomv.supabase.co</string>
+    <string name="supabase_anon_key" translatable="false">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1bm5xZHRxcnlwbXVueGFqb212Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MTMzNTMsImV4cCI6MjA2OTA4OTM1M30.Kc6cz49FjduNErUCO39Oe-bil9mtMosBeYf-CNlxhYk</string>
 </resources>

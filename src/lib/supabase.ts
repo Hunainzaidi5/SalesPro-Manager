@@ -1,15 +1,22 @@
-// In your supabase.ts file, it should look like this:
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
+import { Capacitor } from '@capacitor/core';
+import { supabaseConfig } from '../config/supabase';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Validate configuration
+if (!supabaseConfig.url || !supabaseConfig.anonKey) {
+  console.warn(
+    'Supabase URL or Anon Key is missing. ' +
+    'Please check your environment variables for web or Capacitor configuration for mobile.'
+  );
+}
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(supabaseConfig.url, supabaseConfig.anonKey, {
   auth: {
     autoRefreshToken: true,
-    persistSession: true
-  }
-})
+    persistSession: true,
+    detectSessionInUrl: !Capacitor.isNativePlatform(), // Only detect session in URL for web
+  },
+});
 
 // Database types
 export interface Vegetable {

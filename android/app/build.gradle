@@ -1,54 +1,85 @@
-apply plugin: 'com.android.application'
+plugins {
+    id 'com.android.application'
+}
 
 android {
     namespace "com.salespro.manager"
     compileSdk rootProject.ext.compileSdkVersion
+
     defaultConfig {
         applicationId "com.salespro.manager"
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
+        minSdk rootProject.ext.minSdkVersion
+        targetSdk rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Enable multiDex support
+        multiDexEnabled true
+        
+        // Enable vector drawable support
+        vectorDrawables.useSupportLibrary = true
+        
+        // Configure AAPT options
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            // Files and dirs to omit from the packaged assets dir
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+            // Enable PNG generation for vector drawables
+            cruncherEnabled = false
         }
     }
     buildTypes {
-        release {
+        debug {
+            // Enable code shrinking, obfuscation, and optimization for debug builds
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        release {
+            // Enable code shrinking, obfuscation, and optimization for release builds
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    
+    // Enable Java 8 features
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    
+    // Enable view binding
+    buildFeatures {
+        viewBinding true
+        buildConfig true
     }
 }
 
 repositories {
-    flatDir{
-        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
-    }
+    // Using mavenCentral and google() for better dependency resolution
+    // Local libs directory can be included if needed
+    // flatDir { dirs 'libs' }
 }
 
 dependencies {
-    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    // Core AndroidX libraries
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    
+    // Capacitor
     implementation project(':capacitor-android')
+    
+    // Testing
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    
+    // Capacitor Cordova plugins (using project reference)
     implementation project(':capacitor-cordova-android-plugins')
+    
+    // If you have any local JAR files, you can add them like this:
+    // implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
 
 apply from: 'capacitor.build.gradle'
-
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
-}
