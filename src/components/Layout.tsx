@@ -6,8 +6,11 @@ import {
   List,
   Banknote,
   NotebookPen,
+  FileDown,
 } from 'lucide-react';
 import { useState } from 'react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { getDashboardStats, getExpenses } from '@/lib/database';
 
 interface LayoutProps {
   children: ReactNode;
@@ -22,6 +25,99 @@ const Layout = ({ children }: LayoutProps) => {
     { name: 'Sales', href: '/sales', icon: NotebookPen },
     { name: 'Expenses', href: '/expenses', icon: Banknote },
   ];
+
+  const loadXLSX = (): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      // @ts-ignore
+      if (window && (window as any).XLSX) return resolve((window as any).XLSX);
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      script.onload = () => {
+        // @ts-ignore
+        resolve((window as any).XLSX);
+      };
+      script.onerror = reject;
+      document.body.appendChild(script);
+    });
+  };
+
+  const exportToXLSX = async () => {
+    const [stats, expenses] = await Promise.all([getDashboardStats(), getExpenses()]);
+    const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const netProfit = (stats.totalProfit || 0) - totalExpenses;
+
+    const XLSX = await loadXLSX();
+
+    // Summary sheet
+    const summaryData = [
+      ['Metric', 'Value'],
+      ['Total Revenue', `Rs${(stats.totalRevenue || 0).toFixed(2)}`],
+      ['Total Profit (Gross)', `Rs${(stats.totalProfit || 0).toFixed(2)}`],
+      ['Total Expenses', `Rs${totalExpenses.toFixed(2)}`],
+      ['Net Profit (After Expenses)', `Rs${netProfit.toFixed(2)}`],
+      ['Total Sales', String(stats.totalSales || 0)],
+    ];
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+
+    // Expenses sheet
+    const expenseRows = [
+      ['Date', 'Category', 'Description', 'Amount (Rs)'],
+      ...expenses.map((e: any) => [
+        e.date ? new Date(e.date).toLocaleDateString() : '',
+        e.category || '',
+        e.description || '',
+        Number(e.amount || 0)
+      ])
+    ];
+    const expensesSheet = XLSX.utils.aoa_to_sheet(expenseRows);
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary');
+    XLSX.utils.book_append_sheet(wb, expensesSheet, 'Expenses');
+    XLSX.writeFile(wb, 'report.xlsx');
+  };
+
+  const exportToPDF = async () => {
+    const [stats, expenses] = await Promise.all([getDashboardStats(), getExpenses()]);
+    const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const netProfit = (stats.totalProfit || 0) - totalExpenses;
+    const html = `<!doctype html><html><head><meta charset="utf-8"/>
+      <title>Report</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 24px; }
+        h1 { margin-bottom: 16px; }
+        table { border-collapse: collapse; width: 100%; }
+        td, th { border: 1px solid #ddd; padding: 8px; }
+        th { background: #f5f5f5; text-align: left; }
+        .mt { margin-top: 16px; }
+      </style>
+    </head><body>
+      <h1>Sales Report</h1>
+      <table>
+        <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td>Total Revenue</td><td>Rs${(stats.totalRevenue || 0).toFixed(2)}</td></tr>
+          <tr><td>Total Profit (Gross)</td><td>Rs${(stats.totalProfit || 0).toFixed(2)}</td></tr>
+          <tr><td>Total Expenses</td><td>Rs${totalExpenses.toFixed(2)}</td></tr>
+          <tr><td>Net Profit (After Expenses)</td><td>Rs${netProfit.toFixed(2)}</td></tr>
+          <tr><td>Total Sales</td><td>${String(stats.totalSales || 0)}</td></tr>
+        </tbody>
+      </table>
+      <h2 class="mt">Expenses</h2>
+      <table>
+        <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount (Rs)</th></tr></thead>
+        <tbody>
+          ${expenses.map(e => `<tr><td>${e.date ? new Date(e.date).toLocaleDateString() : ''}</td><td>${e.category || ''}</td><td>${e.description || ''}</td><td>${Number(e.amount || 0).toFixed(2)}</td></tr>`).join('')}
+        </tbody>
+      </table>
+      <script>setTimeout(() => { window.print(); }, 250);</script>
+    </body></html>`;
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -56,13 +152,27 @@ const Layout = ({ children }: LayoutProps) => {
                 );
               })}
             </nav>
+            <div className="mt-auto p-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start">
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Report
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" side="top">
+                  <DropdownMenuItem onClick={exportToPDF}>Export to PDF</DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportToXLSX}>Export to Excel</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-sidebar border-r border-border">
+        <div className="flex grow flex-col bg-white gap-y-5 overflow-y-auto bg-sidebar border-r border-border">
           <div className="flex h-16 shrink-0 items-center px-6 border-b border-border">
             <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
               Sales Manager
@@ -91,6 +201,20 @@ const Layout = ({ children }: LayoutProps) => {
               })}
             </ul>
           </nav>
+          <div className="px-4 pb-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full justify-start">
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Report
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" side="top">
+                <DropdownMenuItem onClick={exportToPDF}>Export to PDF</DropdownMenuItem>
+                <DropdownMenuItem onClick={exportToXLSX}>Export to Excel</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 
