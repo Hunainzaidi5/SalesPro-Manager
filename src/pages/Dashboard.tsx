@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { getDashboardStats, getVegetables, getSales, getExpenses } from '@/lib/database';
 import { supabase } from '@/lib/supabase';
 import type { DashboardStats, Vegetable, Sale } from '@/lib/supabase';
-import { TrendingUp, Package, ShoppingCart, DollarSign, AlertTriangle, Receipt } from 'lucide-react';
+import { TrendingUp, Package, ShoppingCart, DollarSign, AlertTriangle, Receipt, FileDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -192,12 +193,116 @@ const Dashboard = () => {
     }
   ];
 
+  const exportToPDF = async () => {
+    const [stats, expenses] = await Promise.all([getDashboardStats(), getExpenses()]);
+    const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const netProfit = (stats.totalProfit || 0) - totalExpenses;
+    const html = `<!doctype html><html><head><meta charset="utf-8"/>
+      <title>Report</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 24px; }
+        h1 { margin-bottom: 16px; }
+        table { border-collapse: collapse; width: 100%; }
+        td, th { border: 1px solid #ddd; padding: 8px; }
+        th { background: #f5f5f5; text-align: left; }
+        .mt { margin-top: 16px; }
+      </style>
+    </head><body>
+      <h1>Sales Report</h1>
+      <table>
+        <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td>Total Revenue</td><td>Rs${(stats.totalRevenue || 0).toFixed(2)}</td></tr>
+          <tr><td>Total Profit (Gross)</td><td>Rs${(stats.totalProfit || 0).toFixed(2)}</td></tr>
+          <tr><td>Total Expenses</td><td>Rs${totalExpenses.toFixed(2)}</td></tr>
+          <tr><td>Net Profit (After Expenses)</td><td>Rs${netProfit.toFixed(2)}</td></tr>
+          <tr><td>Total Sales</td><td>${String(stats.totalSales || 0)}</td></tr>
+        </tbody>
+      </table>
+      <h2 class="mt">Expenses</h2>
+      <table>
+        <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount (Rs)</th></tr></thead>
+        <tbody>
+          ${expenses.map(e => `<tr><td>${e.date ? new Date(e.date).toLocaleDateString() : ''}</td><td>${e.category || ''}</td><td>${e.description || ''}</td><td>${Number(e.amount || 0).toFixed(2)}</td></tr>`).join('')}
+        </tbody>
+      </table>
+      <script>setTimeout(() => { window.print(); }, 250);</script>
+    </body></html>`;
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    }
+  };
+
+  const loadXLSX = (): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      // @ts-ignore
+      if (window && (window as any).XLSX) return resolve((window as any).XLSX);
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      script.onload = () => {
+        // @ts-ignore
+        resolve((window as any).XLSX);
+      };
+      script.onerror = reject;
+      document.body.appendChild(script);
+    });
+  };
+
+  const exportToXLSX = async () => {
+    const [stats, expenses] = await Promise.all([getDashboardStats(), getExpenses()]);
+    const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const netProfit = (stats.totalProfit || 0) - totalExpenses;
+
+    const XLSX = await loadXLSX();
+
+    // Summary sheet
+    const summaryData = [
+      ['Metric', 'Value'],
+      ['Total Revenue', `Rs${(stats.totalRevenue || 0).toFixed(2)}`],
+      ['Total Profit (Gross)', `Rs${(stats.totalProfit || 0).toFixed(2)}`],
+      ['Total Expenses', `Rs${totalExpenses.toFixed(2)}`],
+      ['Net Profit (After Expenses)', `Rs${netProfit.toFixed(2)}`],
+      ['Total Sales', String(stats.totalSales || 0)],
+    ];
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+
+    // Expenses sheet
+    const expenseRows = [
+      ['Date', 'Category', 'Description', 'Amount (Rs)'],
+      ...expenses.map((e: any) => [
+        e.date ? new Date(e.date).toLocaleDateString() : '',
+        e.category || '',
+        e.description || '',
+        Number(e.amount || 0)
+      ])
+    ];
+    const expensesSheet = XLSX.utils.aoa_to_sheet(expenseRows);
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary');
+    XLSX.utils.book_append_sheet(wb, expensesSheet, 'Expenses');
+    XLSX.writeFile(wb, 'report.xlsx');
+  };
+
   return (
-    <div className="space-y-6 pb-24"> {/* Added pb-24 for bottom padding */}
+    <div className="space-y-6 pb-24">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Dashboard</h1>
-        <div className="text-sm text-black/60">
-          Welcome to Sales Manager
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="border-black/10">
+                <FileDown className="mr-2 h-4 w-4" />
+                Report
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-white border border-black/10">
+              <DropdownMenuItem onClick={exportToPDF}>Export to PDF</DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToXLSX}>Export to Excel</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
