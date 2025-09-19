@@ -62,18 +62,33 @@ export const getVegetables = async (): Promise<Vegetable[]> => {
 
 export const updateVegetablePrices = async (id: string, retailPrice: number, manufacturingCost: number): Promise<Vegetable | null> => {
   try {
+    // Ensure the vegetable exists before attempting update
+    const { data: existing, error: fetchErr } = await supabase
+      .from('vegetables')
+      .select('id')
+      .eq('id', id)
+      .limit(1);
+    if (fetchErr) {
+      console.error('Pre-check failed fetching vegetable:', fetchErr);
+      throw fetchErr;
+    }
+    if (!existing || existing.length === 0) {
+      throw new Error(`Vegetable not found: ${id}`);
+    }
+
     const { data, error } = await supabase
       .from('vegetables')
       .update({ retail_price: retailPrice, manufacturing_cost: manufacturingCost })
       .eq('id', id)
       .select()
-      .single()
 
     if (error) {
       console.error('Error updating vegetable prices:', error)
       throw error
     }
-    return data
+    const updated = Array.isArray(data) ? data[0] : (data as unknown as Vegetable | null)
+    if (!updated) throw new Error('Update failed: 0 rows affected. Check RLS policies or ID.')
+    return updated
   } catch (error) {
     console.error('Error in updateVegetablePrices:', error)
     throw error
@@ -101,18 +116,33 @@ export const getVegetablePrices = async (id: string): Promise<{ retail_price: nu
 
 export const updateVegetableStock = async (id: string, quantity: number): Promise<Vegetable | null> => {
   try {
+    // Ensure the vegetable exists before attempting update
+    const { data: existing, error: fetchErr } = await supabase
+      .from('vegetables')
+      .select('id')
+      .eq('id', id)
+      .limit(1);
+    if (fetchErr) {
+      console.error('Pre-check failed fetching vegetable:', fetchErr);
+      throw fetchErr;
+    }
+    if (!existing || existing.length === 0) {
+      throw new Error(`Vegetable not found: ${id}`);
+    }
+
     const { data, error } = await supabase
       .from('vegetables')
       .update({ current_stock: quantity })
       .eq('id', id)
       .select()
-      .single()
 
     if (error) {
       console.error('Error updating vegetable stock:', error)
       throw error
     }
-    return data
+    const updated = Array.isArray(data) ? data[0] : (data as unknown as Vegetable | null)
+    if (!updated) throw new Error('Update failed: 0 rows affected. Check RLS policies or ID.')
+    return updated
   } catch (error) {
     console.error('Error in updateVegetableStock:', error)
     throw error
@@ -363,14 +393,19 @@ export const addSale = async (sale: Omit<Sale, 'id' | 'created_at'>): Promise<Sa
       throw new Error(`Not enough stock. Only ${vegetable.current_stock} ${vegetable.unit} available.`)
     }
 
-    // Add the sale with the provided prices
+    // Add the sale with the provided prices, exclude generated columns (revenue, profit)
+    const insertPayload = {
+      vegetable_id: sale.vegetable_id,
+      vegetable_name: vegetable.name,
+      quantity_sold: sale.quantity_sold,
+      retail_price: sale.retail_price,
+      manufacturing_cost: sale.manufacturing_cost,
+      date: sale.date
+    };
+
     const { data, error } = await supabase
       .from('sales')
-      .insert([{
-        ...sale,
-        vegetable_name: vegetable.name // Ensure vegetable_name is set from the database
-        // Use the prices from the sale object, not from the database
-      }])
+      .insert([insertPayload])
       .select()
       .single()
 
@@ -379,9 +414,7 @@ export const addSale = async (sale: Omit<Sale, 'id' | 'created_at'>): Promise<Sa
       throw error
     }
 
-    // Update stock for the sold item
-    const newStock = vegetable.current_stock - sale.quantity_sold;
-    await updateVegetableStock(sale.vegetable_id, Math.max(0, newStock));
+    // Do not manually update stock here; DB triggers handle stock adjustment on sale insert
 
     return data;
   } catch (error) {

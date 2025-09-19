@@ -187,11 +187,9 @@ const Sales = () => {
       // Persist to database
       const updated = await updateVegetablePrices(itemForm.selectedItemId, salesRate, purchaseRate);
       if (updated) {
-        // Sync local state
-        const updatedVegetables = vegetables.map(item =>
-          item.id === itemForm.selectedItemId ? { ...item, retail_price: updated.retail_price, manufacturing_cost: updated.manufacturing_cost } : item
-        );
-        setVegetables(updatedVegetables);
+        // Refetch to ensure sync with DB and triggers
+        const fresh = await getVegetables();
+        setVegetables(fresh);
         alert('Item prices updated successfully');
       } else {
         throw new Error('Failed to update item prices');
@@ -268,10 +266,8 @@ const Sales = () => {
       // Persist to database
       const updated = await updateVegetableStock(stockForm.selectedItemId, quantity);
       if (updated) {
-        const updatedVegetables = vegetables.map(item =>
-          item.id === stockForm.selectedItemId ? { ...item, current_stock: updated.current_stock } : item
-        );
-        setVegetables(updatedVegetables);
+        const fresh = await getVegetables();
+        setVegetables(fresh);
         alert('Stock updated successfully');
       } else {
         throw new Error('Failed to update stock');
@@ -344,24 +340,6 @@ const Sales = () => {
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Sales Management</h1>
         <div className="flex gap-4">
-          <Dialog open={isStockDialogOpen} onOpenChange={setIsStockDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" onClick={() => setIsStockDialogOpen(true)}>
-                <Package className="mr-2 h-4 w-4" />
-                Update Stock
-              </Button>
-            </DialogTrigger>
-          </Dialog>
-          
-          <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" onClick={() => setIsItemDialogOpen(true)}>
-                <Edit className="mr-2 h-4 w-4" />
-                Update Prices
-              </Button>
-            </DialogTrigger>
-          </Dialog>
-          
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => setIsDialogOpen(true)}>
@@ -889,6 +867,37 @@ const Sales = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          setItemForm({
+                            selectedItemId: vegetable.id,
+                            purchaseRate: String(vegetable.manufacturing_cost ?? ''),
+                            salesRate: String(vegetable.retail_price ?? '')
+                          });
+                          // Ensure any other dialogs are closed and let the dropdown close before opening
+                          setIsStockDialogOpen(false);
+                          setIsDialogOpen(false);
+                          setTimeout(() => setIsItemDialogOpen(true), 0);
+                        }}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Update Prices
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          setStockForm({
+                            selectedItemId: vegetable.id,
+                            quantity: String(vegetable.current_stock ?? '')
+                          });
+                          // Ensure any other dialogs are closed and let the dropdown close before opening
+                          setIsItemDialogOpen(false);
+                          setIsDialogOpen(false);
+                          setTimeout(() => setIsStockDialogOpen(true), 0);
+                        }}
+                      >
+                        <Package className="mr-2 h-4 w-4" />
+                        Update Stock
+                      </DropdownMenuItem>
                       <DropdownMenuItem 
                         className="text-destructive focus:text-destructive"
                         onClick={() => handleDeleteVegetable(vegetable.id)}

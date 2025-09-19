@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getDashboardStats, getVegetables, getSales, getExpenses } from '@/lib/database';
+import { supabase } from '@/lib/supabase';
 import type { DashboardStats, Vegetable, Sale } from '@/lib/supabase';
 import { TrendingUp, Package, ShoppingCart, DollarSign, AlertTriangle, Receipt } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -37,8 +38,8 @@ const Dashboard = () => {
           getVegetables()
         ]);
         
-        // Filter for low stock vegetables
-        const lowStockVeggies = vegetablesData.filter(item => item.current_stock <= 5 && item.current_stock > 0);
+        // Filter for low stock vegetables (<= 5, including 0)
+        const lowStockVeggies = vegetablesData.filter(item => (item.current_stock ?? 0) <= 5);
       
         // Map the stats to match the expected DashboardStats interface
         const mappedStats = {
@@ -49,7 +50,8 @@ const Dashboard = () => {
           totalSales: statsData.totalSales || 0,
           totalExpenses: statsData.totalExpenses || 0,
           netProfit: statsData.netProfit || 0,
-          lowStockCount: statsData.lowStockCount || 0
+          // Drive from live computed list for accuracy
+          lowStockCount: lowStockVeggies.length
         } as DashboardStats;
         setStats(mappedStats);
         setRecentSales(salesData.slice(-5).reverse());
@@ -64,6 +66,37 @@ const Dashboard = () => {
     };
 
     loadData();
+
+    // Realtime subscription for vegetables changes
+    const channel = supabase
+      .channel('dashboard-vegetables')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vegetables' }, async () => {
+        try {
+          const vegetablesData = await getVegetables();
+          const lowStockVeggies = vegetablesData.filter(item => (item.current_stock ?? 0) <= 5);
+          setLowStockVegetables(lowStockVeggies);
+          // Optionally refresh stats lowStockCount too
+          setStats(prev => prev ? { ...prev, lowStockCount: lowStockVeggies.length, totalVegetables: vegetablesData.length, totalInventoryItems: vegetablesData.length } : prev);
+        } catch (err) {
+          console.error('Error refreshing vegetables in realtime:', err);
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, async () => {
+        // Sales changes adjust stock via triggers; refresh vegetables
+        try {
+          const vegetablesData = await getVegetables();
+          const lowStockVeggies = vegetablesData.filter(item => (item.current_stock ?? 0) <= 5);
+          setLowStockVegetables(lowStockVeggies);
+          setStats(prev => prev ? { ...prev, lowStockCount: lowStockVeggies.length, totalVegetables: vegetablesData.length, totalInventoryItems: vegetablesData.length } : prev);
+        } catch (err) {
+          console.error('Error refreshing vegetables after sales change:', err);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   if (loading) {
@@ -187,7 +220,7 @@ const Dashboard = () => {
           );
         })}
       </div>
-
+ 
       <div className="grid gap-6 md:grid-cols-3">
         {/* Recent Sales */}
         <Card className="p-6 shadow-card">
@@ -219,7 +252,7 @@ const Dashboard = () => {
             )}
           </div>
         </Card>
-
+ 
         {/* Low Stock Vegetables */}
         <Card className="p-6 shadow-card">
           <div className="flex items-center justify-between mb-4">
@@ -250,7 +283,7 @@ const Dashboard = () => {
             )}
           </div>
         </Card>
-
+ 
         {/* Recent Expenses */}
         <Card className="p-6 shadow-card">
           <div className="flex items-center justify-between mb-4">
@@ -284,6 +317,6 @@ const Dashboard = () => {
       </div>
     </div>
   );
-};
-
+}
+ 
 export default Dashboard;
